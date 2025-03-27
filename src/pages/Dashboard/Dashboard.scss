@@ -1,0 +1,229 @@
+.dashboard {
+  padding: 2rem;
+  max-width: 100vh;
+  margin: 0 auto;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+
+    h1 {
+      font-size: 2rem;
+      color: #2a2a2a;
+      margin: 0;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .upload-button {
+      background: #3b82f6;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: background 0.3s ease;
+
+      &:hover {
+        background: #2563eb;
+      }
+    }
+
+    .signout-button {
+      background: #f43f5e;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      border: none;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.3s ease;
+
+      &:hover {
+        background: #e11d48;
+      }
+    }
+  }
+
+  .recent-activity {
+    margin-bottom: 3rem;
+
+    h2 {
+      font-size: 1.5rem;
+      color: #2a2a2a;
+      margin-bottom: 1rem;
+    }
+
+    .activity-list {
+      display: flex;
+      gap: 1rem;
+
+      .activity-item {
+        background: #f8fafc;
+        padding: 1rem;
+        border-radius: 8px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+        .pdf-name {
+          font-weight: 500;
+        }
+
+        .pdf-date {
+          color: #64748b;
+          font-size: 0.875rem;
+        }
+      }
+
+      .no-items {
+        flex: 1;
+        padding: 1rem;
+        text-align: center;
+        color: #64748b;
+        font-style: italic;
+      }
+    }
+  }
+
+  .pdf-list {
+    h2 {
+      font-size: 1.5rem;
+      color: #2a2a2a;
+      margin-bottom: 1rem;
+    }
+
+    .loading-message {
+      color: #64748b;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .pdf-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+
+      .pdf-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .pdf-thumbnail {
+          background: #f1f5f9;
+          padding: 1.5rem;
+          text-align: center;
+          border-bottom: 1px solid #e2e8f0;
+
+          img {
+            width: 64px;
+            height: 64px;
+          }
+        }
+
+        .pdf-info {
+          padding: 1rem;
+
+          h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.1rem;
+            color: #1e293b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          p {
+            margin: 0.25rem 0;
+            color: #64748b;
+            font-size: 0.875rem;
+          }
+        }
+
+        .pdf-actions {
+          display: flex;
+          gap: 0.5rem;
+          padding: 1rem;
+          border-top: 1px solid #e2e8f0;
+
+          button {
+            flex: 1;
+            padding: 0.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s ease;
+
+            &.view-button {
+              background: #e0f2fe;
+              color: #0369a1;
+
+              &:hover {
+                background: #bae6fd;
+              }
+            }
+
+            &.delete-button {
+              background: #fee2e2;
+              color: #b91c1c;
+
+              &:hover {
+                background: #fecaca;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .no-pdfs {
+      text-align: center;
+      padding: 3rem 1rem;
+      background: #f8fafc;
+      border-radius: 8px;
+
+      .empty-icon {
+        width: 100px;
+        height: 100px;
+        opacity: 0.6;
+        margin-bottom: 1rem;
+      }
+
+      p {
+        color: #64748b;
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+      }
+
+      .upload-link {
+        color: #3b82f6;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s ease;
+
+        &:hover {
+          color: #2563eb;
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+}
