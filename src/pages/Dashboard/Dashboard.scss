@@ -16,10 +16,10 @@
     padding-bottom: 1rem;
     border-bottom: 1px solid #e2e8f0;
     width: 100%;
-
+    
     h1 {
       font-size: 2rem;
-      color: #2a2a2a;
+      color: #ecebeb;
       margin: 0 0 1rem 0;
     }
 
@@ -59,14 +59,57 @@
       }
     }
   }
-
+  .dashboard-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    padding: 2rem;
+  }
+  
+  .pdf-container {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    min-height: 60vh;
+    
+    &.can-drop {
+      background: #e9f7fe;
+    }
+    
+    &.is-over {
+      background: #d4edff;
+    }
+  }
+  
+  .pdf-card {
+    transition: transform 0.2s;
+    margin-bottom: 1rem;
+    
+    &.dragging {
+      opacity: 0.5;
+      transform: scale(0.95);
+    }
+  }
+  
+  .type-selector {
+    margin: 1rem 0;
+    display: flex;
+    gap: 1rem;
+    
+    label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+  }
   .recent-activity {
     margin-bottom: 3rem;
     width: 100%;
 
     h2 {
       font-size: 1.5rem;
-      color: #2a2a2a;
+      color: #fbfbfb;
       margin-bottom: 1rem;
     }
 
@@ -77,7 +120,7 @@
       flex-wrap: wrap;
 
       .activity-item {
-        background: #f8fafc;
+        background: #ffffff;
         padding: 1rem;
         border-radius: 8px;
         width: 200px;
@@ -102,7 +145,7 @@
         width: 100%;
         padding: 1rem;
         text-align: center;
-        color: #64748b;
+        color: #feffff;
         font-style: italic;
       }
     }
@@ -118,7 +161,7 @@
     }
 
     .loading-message {
-      color: #64748b;
+      color: #f6f6f6;
       text-align: center;
       padding: 2rem;
     }

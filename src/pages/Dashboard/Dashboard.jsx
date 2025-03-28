@@ -115,7 +115,14 @@ const Dashboard = () => {
             {pdfs.map(pdf => (
               <div key={pdf.id} className="pdf-card">
                 <div className="pdf-thumbnail">
-                  <img src="/pdf-icon.png" alt="PDF Icon" />
+                  <img 
+                    src="/pdf-icon.png" // or your CDN URL
+                    alt="PDF Icon"
+                    onError={(e) => {
+                      e.target.onerror = null; 
+                      e.target.src = "https://cdn-icons-png.flaticon.com/512/337/337946.png"
+                    }}
+                  />
                 </div>
                 <div className="pdf-info">
                   <h3>{pdf.name}</h3>

@@ -45,17 +45,16 @@ const UploadPage = () => {
         async () => {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
           
-          // Critical: Document must match security rules
-          await addDoc(collection(db, 'pdfs'), {
-            name: file.name,
-            url: downloadURL,
-            size: file.size,
-            userId: auth.currentUser.uid,  // ← Rule depends on this
-            uploadedAt: serverTimestamp(),
-            // Optional access control arrays
-            readAccess: [auth.currentUser.uid],
-            writeAccess: [auth.currentUser.uid]
-          });
+          // When uploading:
+            await addDoc(collection(db, 'pdfs'), {
+                name: file.name,
+                url: downloadURL,
+                size: file.size,
+                userId: auth.currentUser.uid,
+                type: "textbook", // or "notes"
+                order: 0, // For sorting
+                uploadedAt: serverTimestamp()
+            });
           
           navigate('/dashboard');
         }
