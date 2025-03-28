@@ -1,0 +1,95 @@
+.upload-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+    padding: 2rem;
+  
+    .upload-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+      width: 100%;
+      max-width: 600px;
+      text-align: center;
+  
+      h2 {
+        color: #2a2a2a;
+        margin-bottom: 1.5rem;
+      }
+  
+      .upload-box {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+  
+      .upload-label {
+        background: #f8fafc;
+        border: 2px dashed #cbd5e1;
+        border-radius: 8px;
+        padding: 2rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+  
+        &:hover {
+          background: #f1f5f9;
+          border-color: #94a3b8;
+        }
+      }
+  
+      .upload-info {
+        text-align: left;
+        background: #f8fafc;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: -1rem;
+  
+        p {
+          margin: 0.5rem 0;
+          color: #475569;
+        }
+      }
+  
+      .progress-bar {
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 1rem;
+  
+        .progress-fill {
+          height: 100%;
+          background: #3b82f6;
+          transition: width 0.3s ease;
+        }
+      }
+  
+      .error-message {
+        color: #ef4444;
+        margin: 0.5rem 0;
+      }
+  
+      .upload-button {
+        background: #3b82f6;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.3s ease;
+        align-self: center;
+  
+        &:hover:not(:disabled) {
+          background: #2563eb;
+        }
+  
+        &:disabled {
+          background: #94a3b8;
+          cursor: not-allowed;
+        }
+      }
+    }
+  }

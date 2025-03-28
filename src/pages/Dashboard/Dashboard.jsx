@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { auth, db } from '../../firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, deleteDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import './Dashboard.scss';
 
@@ -20,13 +20,17 @@ const Dashboard = () => {
     }
   };
 
-  // Fetch user's PDFs from Firestore/Storage
+  // Fetch user's PDFs from Firestore
   useEffect(() => {
     const fetchPdfs = async () => {
       const user = auth.currentUser;
       if (user) {
         try {
-          const q = query(collection(db, 'pdfs'), where('userId', '==', user.uid));
+          setLoading(true);
+          const q = query(
+            collection(db, 'pdfs'), 
+            where('userId', '==', user.uid)
+          );
           const querySnapshot = await getDocs(q);
           const pdfList = querySnapshot.docs.map(doc => ({
             id: doc.id,
@@ -35,23 +39,51 @@ const Dashboard = () => {
           setPdfs(pdfList);
         } catch (error) {
           console.error("Error fetching PDFs: ", error);
+          alert("Error loading PDFs. Please refresh the page.");
         } finally {
           setLoading(false);
         }
+      } else {
+        // User not logged in (shouldn't happen since Dashboard is protected)
+        navigate('/login');
       }
     };
-
+  
     fetchPdfs();
-  }, []);
+  }, [navigate]); // Add navigate to dependencies
+
+  const handleViewPdf = (pdf) => {
+    navigate('/view', { 
+      state: { 
+        file: pdf.url,
+        pdfId: pdf.id
+      } 
+    });
+  };
+
+  const handleDeletePdf = async (pdfId) => {
+    if (window.confirm('Are you sure you want to delete this PDF?')) {
+      try {
+        await deleteDoc(doc(db, 'pdfs', pdfId));
+        setPdfs(pdfs.filter(pdf => pdf.id !== pdfId));
+        alert('PDF deleted successfully');
+      } catch (error) {
+        alert('Error deleting PDF: ' + error.message);
+      }
+    }
+  };
 
   return (
     <div className="dashboard">
       <header className="dashboard-header">
         <h1>Welcome to StudyShelf</h1>
         <div className="header-actions">
-          <Link to="/upload" className="upload-button">
-            Upload PDF
-          </Link>
+        <button 
+  onClick={() => navigate('/upload')}
+  className="upload-button"
+>
+  Upload PDF
+</button>
           <button onClick={handleSignOut} className="signout-button">
             Sign Out
           </button>
@@ -65,7 +97,7 @@ const Dashboard = () => {
             pdfs.slice(0, 3).map(pdf => (
               <div key={pdf.id} className="activity-item">
                 <span className="pdf-name">{pdf.name}</span>
-                <span className="pdf-date">{new Date(pdf.uploadedAt).toLocaleDateString()}</span>
+                <span className="pdf-date">{new Date(pdf.uploadedAt?.toDate()).toLocaleDateString()}</span>
               </div>
             ))
           ) : (
@@ -87,12 +119,22 @@ const Dashboard = () => {
                 </div>
                 <div className="pdf-info">
                   <h3>{pdf.name}</h3>
-                  <p>Uploaded: {new Date(pdf.uploadedAt).toLocaleDateString()}</p>
+                  <p>Uploaded: {new Date(pdf.uploadedAt?.toDate()).toLocaleDateString()}</p>
                   <p>Size: {(pdf.size / 1024).toFixed(2)} KB</p>
                 </div>
                 <div className="pdf-actions">
-                  <button className="view-button">View</button>
-                  <button className="delete-button">Delete</button>
+                  <button 
+                    className="view-button"
+                    onClick={() => handleViewPdf(pdf)}
+                  >
+                    View
+                  </button>
+                  <button 
+                    className="delete-button"
+                    onClick={() => handleDeletePdf(pdf.id, pdf.name)}
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
             ))}

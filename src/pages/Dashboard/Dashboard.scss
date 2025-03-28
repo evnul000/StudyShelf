@@ -1,26 +1,33 @@
 .dashboard {
   padding: 2rem;
-  max-width: 100vh;
+  max-width: 1200px;
   margin: 0 auto;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 
   .dashboard-header {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
     margin-bottom: 2rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid #e2e8f0;
+    width: 100%;
 
     h1 {
       font-size: 2rem;
       color: #2a2a2a;
-      margin: 0;
+      margin: 0 0 1rem 0;
     }
 
     .header-actions {
       display: flex;
       gap: 1rem;
+      justify-content: center;
+      width: 100%;
     }
 
     .upload-button {
@@ -55,6 +62,7 @@
 
   .recent-activity {
     margin-bottom: 3rem;
+    width: 100%;
 
     h2 {
       font-size: 1.5rem;
@@ -64,20 +72,24 @@
 
     .activity-list {
       display: flex;
+      justify-content: center;
       gap: 1rem;
+      flex-wrap: wrap;
 
       .activity-item {
         background: #f8fafc;
         padding: 1rem;
         border-radius: 8px;
-        flex: 1;
+        width: 200px;
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        align-items: center;
 
         .pdf-name {
           font-weight: 500;
+          text-align: center;
         }
 
         .pdf-date {
@@ -87,7 +99,7 @@
       }
 
       .no-items {
-        flex: 1;
+        width: 100%;
         padding: 1rem;
         text-align: center;
         color: #64748b;
@@ -97,6 +109,8 @@
   }
 
   .pdf-list {
+    width: 100%;
+    
     h2 {
       font-size: 1.5rem;
       color: #2a2a2a;
@@ -113,6 +127,7 @@
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 1.5rem;
+      justify-items: center;
 
       .pdf-card {
         background: white;
@@ -120,6 +135,7 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         overflow: hidden;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
+        width: 280px;
 
         &:hover {
           transform: translateY(-2px);
@@ -140,6 +156,7 @@
 
         .pdf-info {
           padding: 1rem;
+          text-align: center;
 
           h3 {
             margin: 0 0 0.5rem 0;
@@ -162,10 +179,10 @@
           gap: 0.5rem;
           padding: 1rem;
           border-top: 1px solid #e2e8f0;
+          justify-content: center;
 
           button {
-            flex: 1;
-            padding: 0.5rem;
+            padding: 0.5rem 1rem;
             border: none;
             border-radius: 4px;
             cursor: pointer;
@@ -199,6 +216,8 @@
       padding: 3rem 1rem;
       background: #f8fafc;
       border-radius: 8px;
+      margin: 0 auto;
+      max-width: 600px;
 
       .empty-icon {
         width: 100px;

@@ -17,6 +17,7 @@
     "@react-pdf-viewer/locales": "^1.0.0",
     "firebase": "^11.4.0",
     "formik": "^2.4.6",
+    "pdf-lib": "^1.17.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.3.0",

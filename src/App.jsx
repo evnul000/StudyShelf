@@ -5,6 +5,7 @@ import PDFViewer from './pages/PDFViewer/PDFViewer';
 import LoginPage from './pages/Auth/Login';
 import RegisterPage from './pages/Auth/Register';
 import Dashboard from './pages/Dashboard/Dashboard';
+import UploadPage from './pages/UploadPage/UploadPage';
 import { auth } from './firebase';
 
 const App = () => {
@@ -13,15 +14,25 @@ const App = () => {
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(user => {
-      // Don't redirect if we're already on auth pages
-      const isAuthPage = ['/login', '/register'].includes(location.pathname);
+      // Define paths that don't require authentication
+      const publicPaths = ['/login', '/register', '/'];
+      const protectedPaths = ['/dashboard', '/upload', '/view'];
+      
+      // Don't redirect if we're on a public path
+      if (publicPaths.includes(location.pathname)) {
+        return;
+      }
       
       if (user) {
-        if (!['/dashboard', '/'].includes(location.pathname)) {
+        // If user is logged in but trying to access auth pages, redirect to dashboard
+        if (['/login', '/register'].includes(location.pathname)) {
           navigate('/dashboard');
         }
-      } else if (!isAuthPage) {
-        navigate('/login');
+      } else {
+        // If user is not logged in and trying to access protected paths
+        if (protectedPaths.includes(location.pathname)) {
+          navigate('/login');
+        }
       }
     });
 
@@ -36,6 +47,7 @@ const App = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/dashboard" element={<Dashboard/>} />
+        <Route path="/upload" element={<UploadPage />} />
       </Routes>
     </>
   );
