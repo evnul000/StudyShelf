@@ -7,6 +7,7 @@ import './UploadPage.scss';
 
 const UploadPage = () => {
   const [file, setFile] = useState(null);
+  const [type, setType] = useState('textbook');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
@@ -101,7 +102,24 @@ const UploadPage = () => {
           )}
           
           {error && <p className="error-message">{error}</p>}
-          
+          <div className="type-selector">
+        <label>
+          <input 
+            type="radio" 
+            checked={type === 'textbook'} 
+            onChange={() => setType('textbook')}
+          />
+          Textbook
+        </label>
+        <label>
+          <input
+            type="radio"
+            checked={type === 'notes'}
+            onChange={() => setType('notes')}
+          />
+          Notes
+        </label>
+      </div>
           <button
             onClick={handleUpload}
             disabled={!file || uploading}

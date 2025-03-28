@@ -1,11 +1,101 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../firebase';
-import { collection, query, where, getDocs, doc, deleteDoc } from 'firebase/firestore';
-import { signOut } from 'firebase/auth';
+import { collection, query, where, getDocs, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import './Dashboard.scss';
 
+// PDF Card Component with Drag capability
+const PDFCard = ({ pdf, onView, onDelete, onMove }) => {
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: 'PDF',
+    item: { id: pdf.id, type: pdf.type },
+    collect: (monitor) => ({
+      isDragging: !!monitor.isDragging(),
+    }),
+  }));
+
+  return (
+    <div 
+      ref={drag}
+      className={`pdf-card ${isDragging ? 'dragging' : ''}`}
+    >
+      <div className="pdf-thumbnail">
+        <img 
+          src="/pdf-icon.png"
+          alt="PDF Icon"
+          onError={(e) => {
+            e.target.onerror = null; 
+            e.target.src = "https://cdn-icons-png.flaticon.com/512/337/337946.png"
+          }}
+        />
+      </div>
+      <div className="pdf-info">
+        <h3>{pdf.name}</h3>
+        <p>Uploaded: {new Date(pdf.uploadedAt?.toDate()).toLocaleDateString()}</p>
+        <p>Size: {(pdf.size / 1024).toFixed(2)} KB</p>
+      </div>
+      <div className="pdf-actions">
+        <button className="view-button" onClick={() => onView(pdf)}>
+          View
+        </button>
+        <button className="delete-button" onClick={() => onDelete(pdf.id)}>
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// PDF Container Component with Drop capability
+const PDFContainer = ({ title, type, pdfs, onView, onDelete, onMove }) => {
+  const [{ canDrop, isOver }, drop] = useDrop(() => ({
+    accept: 'PDF',
+    drop: (item) => {
+      if (item.type !== type) {
+        onMove(item.id, type);
+      }
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop(),
+    }),
+  }));
+
+  const filteredPdfs = pdfs.filter(pdf => pdf.type === type);
+
+  return (
+    <div 
+      ref={drop}
+      className={`pdf-container ${canDrop ? 'can-drop' : ''} ${isOver ? 'is-over' : ''}`}
+    >
+      <h2>{title}</h2>
+      {filteredPdfs.length > 0 ? (
+        <div className="pdf-grid">
+          {filteredPdfs.map(pdf => (
+            <PDFCard 
+              key={pdf.id} 
+              pdf={pdf} 
+              onView={onView}
+              onDelete={onDelete}
+              onMove={onMove}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="no-pdfs">
+          <img src="/empty-folder.png" alt="No PDFs" className="empty-icon" />
+          <p>No {type === 'textbook' ? 'textbooks' : 'notes'} yet</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Dashboard = () => {
+  const [user, setUser] = useState(null);
   const [pdfs, setPdfs] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -22,6 +112,7 @@ const Dashboard = () => {
 
   // Fetch user's PDFs from Firestore
   useEffect(() => {
+    
     const fetchPdfs = async () => {
       const user = auth.currentUser;
       if (user) {
@@ -44,13 +135,22 @@ const Dashboard = () => {
           setLoading(false);
         }
       } else {
-        // User not logged in (shouldn't happen since Dashboard is protected)
         navigate('/login');
       }
     };
   
-    fetchPdfs();
-  }, [navigate]); // Add navigate to dependencies
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUser(user);
+        fetchPdfs(user.uid); // Your existing PDF fetching function
+      } else {
+        navigate('/login');
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
 
   const handleViewPdf = (pdf) => {
     navigate('/view', { 
@@ -73,90 +173,74 @@ const Dashboard = () => {
     }
   };
 
+  const handleMovePDF = async (pdfId, newType) => {
+    try {
+      await updateDoc(doc(db, 'pdfs', pdfId), {
+        type: newType
+      });
+      setPdfs(pdfs.map(pdf => 
+        pdf.id === pdfId ? { ...pdf, type: newType } : pdf
+      ));
+    } catch (error) {
+      console.error("Error moving PDF:", error);
+      alert("Failed to move PDF. Please try again.");
+    }
+  };
+
   return (
-    <div className="dashboard">
-      <header className="dashboard-header">
-        <h1>Welcome to StudyShelf</h1>
-        <div className="header-actions">
-        <button 
-  onClick={() => navigate('/upload')}
-  className="upload-button"
->
-  Upload PDF
-</button>
-          <button onClick={handleSignOut} className="signout-button">
-            Sign Out
-          </button>
-        </div>
-      </header>
-
-      <section className="recent-activity">
-        <h2>Recent Activity</h2>
-        <div className="activity-list">
-          {pdfs.length > 0 ? (
-            pdfs.slice(0, 3).map(pdf => (
-              <div key={pdf.id} className="activity-item">
-                <span className="pdf-name">{pdf.name}</span>
-                <span className="pdf-date">{new Date(pdf.uploadedAt?.toDate()).toLocaleDateString()}</span>
-              </div>
-            ))
-          ) : (
-            <div className="no-items">No recent activity</div>
-          )}
-        </div>
-      </section>
-
-      <section className="pdf-list">
-        <h2>Your PDFs</h2>
-        {loading ? (
-          <p className="loading-message">Loading your PDFs...</p>
-        ) : pdfs.length > 0 ? (
-          <div className="pdf-grid">
-            {pdfs.map(pdf => (
-              <div key={pdf.id} className="pdf-card">
-                <div className="pdf-thumbnail">
-                  <img 
-                    src="/pdf-icon.png" // or your CDN URL
-                    alt="PDF Icon"
-                    onError={(e) => {
-                      e.target.onerror = null; 
-                      e.target.src = "https://cdn-icons-png.flaticon.com/512/337/337946.png"
-                    }}
-                  />
-                </div>
-                <div className="pdf-info">
-                  <h3>{pdf.name}</h3>
-                  <p>Uploaded: {new Date(pdf.uploadedAt?.toDate()).toLocaleDateString()}</p>
-                  <p>Size: {(pdf.size / 1024).toFixed(2)} KB</p>
-                </div>
-                <div className="pdf-actions">
-                  <button 
-                    className="view-button"
-                    onClick={() => handleViewPdf(pdf)}
-                  >
-                    View
-                  </button>
-                  <button 
-                    className="delete-button"
-                    onClick={() => handleDeletePdf(pdf.id, pdf.name)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+    <DndProvider backend={HTML5Backend}>
+      <div className="dashboard">
+        <header className="dashboard-header">
+          <h1>Welcome to StudyShelf</h1>
+          <div className="header-actions">
+            <button 
+              onClick={() => navigate('/upload')}
+              className="upload-button"
+            >
+              Upload PDF
+            </button>
+            <button onClick={handleSignOut} className="signout-button">
+              Sign Out
+            </button>
           </div>
-        ) : (
-          <div className="no-pdfs">
-            <img src="/empty-folder.png" alt="No PDFs" className="empty-icon" />
-            <p>No books uploaded yet</p>
-            <Link to="/upload" className="upload-link">
-              Upload your first PDF
-            </Link>
+        </header>
+
+        <section className="recent-activity">
+          <h2>Recent Activity</h2>
+          <div className="activity-list">
+            {pdfs.length > 0 ? (
+              pdfs.slice(0, 3).map(pdf => (
+                <div key={pdf.id} className="activity-item">
+                  <span className="pdf-name">{pdf.name}</span>
+                  <span className="pdf-date">{new Date(pdf.uploadedAt?.toDate()).toLocaleDateString()}</span>
+                </div>
+              ))
+            ) : (
+              <div className="no-items">No recent activity</div>
+            )}
           </div>
-        )}
-      </section>
-    </div>
+        </section>
+
+        <div className="pdf-containers">
+          <PDFContainer 
+            title="Textbooks" 
+            type="textbook" 
+            pdfs={pdfs} 
+            onView={handleViewPdf}
+            onDelete={handleDeletePdf}
+            onMove={handleMovePDF}
+          />
+          <PDFContainer 
+            title="Notes" 
+            type="notes" 
+            pdfs={pdfs} 
+            onView={handleViewPdf}
+            onDelete={handleDeletePdf}
+            onMove={handleMovePDF}
+          />
+        </div>
+      </div>
+    </DndProvider>
   );
 };
 
