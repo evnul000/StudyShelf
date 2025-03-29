@@ -6,6 +6,7 @@ import LoginPage from './pages/Auth/Login';
 import RegisterPage from './pages/Auth/Register';
 import Dashboard from './pages/Dashboard/Dashboard';
 import UploadPage from './pages/UploadPage/UploadPage';
+import SemesterPage from './pages/Semester/Semester';
 import { auth } from './firebase';
 
 const App = () => {
@@ -16,7 +17,7 @@ const App = () => {
     const unsubscribe = auth.onAuthStateChanged(user => {
       // Define paths that don't require authentication
       const publicPaths = ['/login', '/register', '/'];
-      const protectedPaths = ['/dashboard', '/upload', '/view'];
+      const protectedPaths = ['/dashboard', '/upload', '/view','semester'];
       
       // Don't redirect if we're on a public path
       if (publicPaths.includes(location.pathname)) {
@@ -48,6 +49,7 @@ const App = () => {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/dashboard" element={<Dashboard/>} />
         <Route path="/upload" element={<UploadPage />} />
+        <Route path="/semester" element={<SemesterPage/>}/>
       </Routes>
     </>
   );

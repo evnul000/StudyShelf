@@ -3,25 +3,73 @@ import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../firebase';
 import { collection, query, where, getDocs, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
-import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { FiBook, FiFileText, FiFolder, FiUploadCloud } from 'react-icons/fi';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  useDroppable,
+  useDraggable
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import Sidebar from '../../components/Sidebar/Sidebar';
 import './Dashboard.scss';
 
-// PDF Card Component with Drag capability
-const PDFCard = ({ pdf, onView, onDelete, onMove }) => {
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: 'PDF',
-    item: { id: pdf.id, type: pdf.type },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
-    }),
-  }));
+const DraggablePDFCard = ({ id, children, onView, onDelete }) => {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id,
+  });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+  };
 
   return (
     <div 
-      ref={drag}
-      className={`pdf-card ${isDragging ? 'dragging' : ''}`}
+      ref={setNodeRef} 
+      style={style} 
+      className={`draggable-pdf-card ${isDragging ? 'dragging' : ''}`}
+      aria-pressed={isDragging}
     >
+      <div 
+        className="drag-handle" 
+        {...listeners} 
+        {...attributes}
+        aria-label="Drag handle"
+        tabIndex={0}
+      >
+        <span className="drag-icon" aria-hidden="true">☰</span>
+      </div>
+      <div className="card-content">
+        {React.cloneElement(children, { onView, onDelete })}
+      </div>
+    </div>
+  );
+};
+
+const DroppableContainer = ({ id, children }) => {
+  const { setNodeRef } = useDroppable({
+    id,
+  });
+
+  return (
+    <div ref={setNodeRef} className="droppable-container">
+      {children}
+    </div>
+  );
+};
+
+const PDFCard = ({ pdf, onView, onDelete }) => {
+  return (
+    <div className="pdf-card">
       <div className="pdf-thumbnail">
         <img 
           src="/pdf-icon.png"
@@ -38,10 +86,16 @@ const PDFCard = ({ pdf, onView, onDelete, onMove }) => {
         <p>Size: {(pdf.size / 1024).toFixed(2)} KB</p>
       </div>
       <div className="pdf-actions">
-        <button className="view-button" onClick={() => onView(pdf)}>
+        <button className="view-button" onClick={(e) => {
+          e.stopPropagation();
+          onView();
+        }}>
           View
         </button>
-        <button className="delete-button" onClick={() => onDelete(pdf.id)}>
+        <button className="delete-button" onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}>
           Delete
         </button>
       </div>
@@ -49,48 +103,60 @@ const PDFCard = ({ pdf, onView, onDelete, onMove }) => {
   );
 };
 
-// PDF Container Component with Drop capability
-const PDFContainer = ({ title, type, pdfs, onView, onDelete, onMove }) => {
-  const [{ canDrop, isOver }, drop] = useDrop(() => ({
-    accept: 'PDF',
-    drop: (item) => {
-      if (item.type !== type) {
-        onMove(item.id, type);
-      }
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-      canDrop: monitor.canDrop(),
-    }),
-  }));
-
-  const filteredPdfs = pdfs.filter(pdf => pdf.type === type);
-
+const PDFContainer = ({ title, type, pdfs, onView, onDelete }) => {
   return (
-    <div 
-      ref={drop}
-      className={`pdf-container ${canDrop ? 'can-drop' : ''} ${isOver ? 'is-over' : ''}`}
-    >
-      <h2>{title}</h2>
-      {filteredPdfs.length > 0 ? (
-        <div className="pdf-grid">
-          {filteredPdfs.map(pdf => (
-            <PDFCard 
-              key={pdf.id} 
-              pdf={pdf} 
-              onView={onView}
-              onDelete={onDelete}
-              onMove={onMove}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="no-pdfs">
-          <img src="/empty-folder.png" alt="No PDFs" className="empty-icon" />
-          <p>No {type === 'textbook' ? 'textbooks' : 'notes'} yet</p>
-        </div>
-      )}
-    </div>
+    <DroppableContainer id={type}>
+      <div className={`pdf-container ${type}`}>
+        <h2>{title}</h2>
+        {pdfs.length > 0 ? (
+          <SortableContext 
+            items={pdfs.map(pdf => pdf.id)} 
+            strategy={horizontalListSortingStrategy}
+          >
+            <div className="pdf-grid">
+              {pdfs.map(pdf => (
+                <DraggablePDFCard 
+                  key={pdf.id} 
+                  id={pdf.id}
+                  onView={() => onView(pdf)}
+                  onDelete={() => onDelete(pdf.id)}
+                >
+                  <PDFCard pdf={pdf} />
+                </DraggablePDFCard>
+              ))}
+            </div>
+          </SortableContext>
+        ) : (
+          <div className="no-pdfs">
+            {type === 'textbook' ? (
+              <>
+                <FiBook className="empty-icon" size={48} />
+                <p>No textbooks uploaded yet</p>
+                <button 
+                  className="upload-cta"
+                  onClick={() => navigate('/upload')}
+                >
+                  <FiUploadCloud size={16} />
+                  <span>Upload Textbook</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <FiFileText className="empty-icon" size={48} />
+                <p>No notes uploaded yet</p>
+                <button 
+                  className="upload-cta"
+                  onClick={() => navigate('/upload')}
+                >
+                  <FiUploadCloud size={16} />
+                  <span>Upload Notes</span>
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </DroppableContainer>
   );
 };
 
@@ -98,7 +164,17 @@ const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [pdfs, setPdfs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeId, setActiveId] = useState(null);
   const navigate = useNavigate();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5, // Need to move 5px before dragging starts
+      },
+    }),
+    useSensor(KeyboardSensor)
+  );
 
   const handleSignOut = async () => {
     try {
@@ -110,47 +186,76 @@ const Dashboard = () => {
     }
   };
 
-  // Fetch user's PDFs from Firestore
   useEffect(() => {
-    
-    const fetchPdfs = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        try {
-          setLoading(true);
-          const q = query(
-            collection(db, 'pdfs'), 
-            where('userId', '==', user.uid)
-          );
-          const querySnapshot = await getDocs(q);
-          const pdfList = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          setPdfs(pdfList);
-        } catch (error) {
-          console.error("Error fetching PDFs: ", error);
-          alert("Error loading PDFs. Please refresh the page.");
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        navigate('/login');
+    const fetchPdfs = async (userId) => {
+      try {
+        setLoading(true);
+        const q = query(
+          collection(db, 'pdfs'), 
+          where('userId', '==', userId)
+        );
+        const querySnapshot = await getDocs(q);
+        const pdfList = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setPdfs(pdfList);
+      } catch (error) {
+        console.error("Error fetching PDFs: ", error);
+        alert("Error loading PDFs. Please refresh the page.");
+      } finally {
+        setLoading(false);
       }
     };
-  
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUser(user);
-        fetchPdfs(user.uid); // Your existing PDF fetching function
+        fetchPdfs(user.uid);
       } else {
         navigate('/login');
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
   }, [navigate]);
+
+  const handleDragStart = (event) => {
+    setActiveId(event.active.id);
+  };
+
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) {
+      setActiveId(null);
+      return;
+    }
+
+    const activePdf = pdfs.find(pdf => pdf.id === active.id);
+    
+    if (activePdf && over.id !== activePdf.type) {
+      try {
+        // Update in Firestore
+        await updateDoc(doc(db, 'pdfs', active.id), {
+          type: over.id
+        });
+        
+        // Update local state
+        setPdfs(pdfs.map(pdf => 
+          pdf.id === active.id ? { ...pdf, type: over.id } : pdf
+        ));
+      } catch (error) {
+        console.error("Error moving PDF:", error);
+      }
+    }
+
+    setActiveId(null);
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+  };
 
   const handleViewPdf = (pdf) => {
     navigate('/view', { 
@@ -173,74 +278,91 @@ const Dashboard = () => {
     }
   };
 
-  const handleMovePDF = async (pdfId, newType) => {
-    try {
-      await updateDoc(doc(db, 'pdfs', pdfId), {
-        type: newType
-      });
-      setPdfs(pdfs.map(pdf => 
-        pdf.id === pdfId ? { ...pdf, type: newType } : pdf
-      ));
-    } catch (error) {
-      console.error("Error moving PDF:", error);
-      alert("Failed to move PDF. Please try again.");
-    }
-  };
+  const textbooks = pdfs.filter(pdf => pdf.type === 'textbook');
+  const notes = pdfs.filter(pdf => pdf.type === 'notes');
+  const activePdf = activeId ? pdfs.find(pdf => pdf.id === activeId) : null;
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      <div className="dashboard">
-        <header className="dashboard-header">
-          <h1>Welcome to StudyShelf</h1>
-          <div className="header-actions">
-            <button 
-              onClick={() => navigate('/upload')}
-              className="upload-button"
-            >
-              Upload PDF
-            </button>
-            <button onClick={handleSignOut} className="signout-button">
-              Sign Out
-            </button>
-          </div>
-        </header>
+    <div className="dashboard">
+      <Sidebar/>
+      <header className="dashboard-header">
+        <h1>Welcome to StudyShelf</h1>
+        <div className="header-actions">
+          <button 
+            onClick={() => navigate('/upload')}
+            className="upload-button"
+          >
+            Upload PDF
+          </button>
+          <button onClick={handleSignOut} className="signout-button">
+            Sign Out
+          </button>
+        </div>
+      </header>
 
-        <section className="recent-activity">
-          <h2>Recent Activity</h2>
-          <div className="activity-list">
-            {pdfs.length > 0 ? (
-              pdfs.slice(0, 3).map(pdf => (
-                <div key={pdf.id} className="activity-item">
-                  <span className="pdf-name">{pdf.name}</span>
-                  <span className="pdf-date">{new Date(pdf.uploadedAt?.toDate()).toLocaleDateString()}</span>
-                </div>
-              ))
-            ) : (
-              <div className="no-items">No recent activity</div>
-            )}
-          </div>
-        </section>
+      <section className="recent-activity">
+        <h2>Recent Activity</h2>
+        <div className="activity-list">
+          {pdfs.length > 0 ? (
+            pdfs.slice(0, 3).map(pdf => (
+              <div key={pdf.id} className="activity-item">
+                <span className="pdf-name">{pdf.name}</span>
+                <span className="pdf-date">{new Date(pdf.uploadedAt?.toDate()).toLocaleDateString()}</span>
+              </div>
+            ))
+          ) : (
+            <div className="no-items">No recent activity</div>
+          )}
+        </div>
+      </section>
 
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
         <div className="pdf-containers">
           <PDFContainer 
             title="Textbooks" 
             type="textbook" 
-            pdfs={pdfs} 
+            pdfs={textbooks} 
             onView={handleViewPdf}
             onDelete={handleDeletePdf}
-            onMove={handleMovePDF}
           />
           <PDFContainer 
             title="Notes" 
             type="notes" 
-            pdfs={pdfs} 
+            pdfs={notes} 
             onView={handleViewPdf}
             onDelete={handleDeletePdf}
-            onMove={handleMovePDF}
           />
         </div>
-      </div>
-    </DndProvider>
+        
+        <DragOverlay>
+          {activePdf ? (
+            <div className="pdf-card dragging">
+              <div className="pdf-thumbnail">
+                <img 
+                  src="/pdf-icon.png"
+                  alt="PDF Icon"
+                  onError={(e) => {
+                    e.target.onerror = null; 
+                    e.target.src = "https://cdn-icons-png.flaticon.com/512/337/337946.png"
+                  }}
+                />
+              </div>
+              <div className="pdf-info">
+                <h3>{activePdf.name}</h3>
+                <p>Uploaded: {new Date(activePdf.uploadedAt?.toDate()).toLocaleDateString()}</p>
+                <p>Size: {(activePdf.size / 1024).toFixed(2)} KB</p>
+              </div>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+    </div>
   );
 };
 

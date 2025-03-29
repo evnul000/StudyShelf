@@ -14,7 +14,7 @@
 
     h1 {
       font-size: 2rem;
-      color: #2a2a2a;
+      color: #8a8a8a;
       margin: 0;
     }
 
@@ -58,7 +58,7 @@
 
     h2 {
       font-size: 1.5rem;
-      color: #2a2a2a;
+      color: #b3b3b3;
       margin-bottom: 1rem;
     }
 
@@ -77,11 +77,12 @@
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
         .pdf-name {
+          color:#121416;
           font-weight: 500;
         }
 
         .pdf-date {
-          color: #64748b;
+          color: #121416;
           font-size: 0.875rem;
         }
       }
@@ -107,14 +108,66 @@
     border-radius: 8px;
     padding: 1.5rem;
     min-height: 500px;
+    transition: background 0.2s ease;
 
-    &.can-drop {
-      background: #e9f7fe;
+    .no-pdfs {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 300px;
+      color: #64748b;
+      text-align: center;
+      padding: 2rem;
+    
+      .empty-icon {
+        color: #cbd5e1;
+        margin-bottom: 1rem;
+      }
+    
+      p {
+        margin: 0.5rem 0 1.5rem;
+        font-size: 1.1rem;
+      }
+    
+      .upload-cta {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+        font-size: 0.9rem;
+    
+        &:hover {
+          background: #2563eb;
+        }
+      }
+    }
+    
+    // For textbook/notes specific empty states
+    .pdf-container.textbook .no-pdfs {
+      .empty-icon {
+        color: #3b82f6;
+      }
+    }
+    
+    .pdf-container.notes .no-pdfs {
+      .empty-icon {
+        color: #10b981;
+      }
+    }
+    
+    &.textbook {
+      border: 2px solid #3b82f6;
     }
 
-    &.is-over {
-      background: #d4edff;
-      outline: 2px dashed #3b82f6;
+    &.notes {
+      border: 2px solid #10b981;
     }
 
     h2 {
@@ -129,29 +182,47 @@
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
       gap: 1.5rem;
-    }
-
-    .no-pdfs {
-      text-align: center;
-      padding: 3rem 1rem;
-      color: #64748b;
-
-      .empty-icon {
-        width: 100px;
-        height: 100px;
-        opacity: 0.6;
-        margin-bottom: 1rem;
-      }
+      min-height: 300px;
     }
   }
-
+  .draggable-pdf-card {
+    position: relative;
+    
+    .drag-handle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      cursor: grab;
+      padding: 5px;
+      z-index: 1;
+      
+      .drag-icon {
+        color: #64748b;
+        font-size: 1.2rem;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      
+      &:active {
+        cursor: grabbing;
+      }
+    }
+    
+    &:hover .drag-icon {
+      opacity: 1;
+    }
+  }
+  
+  .card-content {
+    height: 100%;
+  }
   .pdf-card {
     background: white;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     overflow: hidden;
     transition: all 0.2s ease;
-
+    
     &.dragging {
       opacity: 0.5;
       transform: scale(0.95);

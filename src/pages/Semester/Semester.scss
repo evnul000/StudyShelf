@@ -1,0 +1,446 @@
+.semester-page {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+  
+      h1 {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.8rem;
+        color: #2a2a2a;
+      }
+    }
+  
+    .add-semester-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #3b82f6;
+      color: rgb(0, 0, 0);
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s ease;
+  
+      &:hover {
+        background: #2563eb;
+      }
+    }
+  
+    .new-semester-form {
+      background: #f8fafc;
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+  
+      input[type="text"] {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+        font-size: 1rem;
+      }
+  
+      .color-picker {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+  
+        label {
+          font-weight: 500;
+          color: black;
+        }
+  
+        input[type="color"] {
+          width: 50px;
+          height: 30px;
+          border: none;
+          cursor: pointer;
+        }
+      }
+  
+      .form-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+  
+        button {
+          padding: 0.5rem 1rem;
+          border-radius: 4px;
+          border: none;
+          cursor: pointer;
+          font-weight: 500;
+  
+          &:first-child {
+            background: #3b82f6;
+            color: white;
+          }
+  
+          &:last-child {
+            background: #f1f5f9;
+            color: #64748b;
+          }
+        }
+      }
+    }
+  
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #64748b;
+    }
+  
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: #64748b;
+  
+      svg {
+        margin-bottom: 1rem;
+        color: #000000;
+      }
+  
+      p {
+        font-size: 1.1rem;
+      }
+    }
+  
+    .semester-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+  
+    .semester-item {
+        color: black;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+  
+      .semester-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        cursor: pointer;
+        transition: background 0.2s ease;
+  
+        &:hover {
+          background: #f8fafc;
+        }
+  
+        .semester-title {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+  
+          h3 {
+            margin: 0;
+            font-size: 1.2rem;
+          }
+        }
+  
+        .semester-actions {
+          display: flex;
+          gap: 0.5rem;
+  
+          button {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+  
+            &.add-class-btn {
+              background: #f1f5f9;
+              color: #334155;
+  
+              &:hover {
+                background: #e2e8f0;
+              }
+            }
+  
+            &.delete-btn {
+              background: #fee2e2;
+              color: #b91c1c;
+  
+              &:hover {
+                background: #fecaca;
+              }
+            }
+          }
+        }
+      }
+  
+      .semester-content {
+        padding: 0 1.5rem 1.5rem;
+  
+        .new-class-form {
+          background: #f8fafc;
+          padding: 1rem;
+          border-radius: 8px;
+          margin-bottom: 1rem;
+  
+          input[type="text"] {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+          }
+  
+          .color-picker {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+  
+            label {
+              font-size: 0.9rem;
+            }
+  
+            input[type="color"] {
+              width: 30px;
+              height: 30px;
+            }
+          }
+  
+          .form-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+  
+            button {
+              padding: 0.25rem 0.75rem;
+              border-radius: 4px;
+              border: none;
+              cursor: pointer;
+              font-size: 0.9rem;
+  
+              &:first-child {
+                background: #10b981;
+                color: rgb(0, 0, 0);
+              }
+  
+              &:last-child {
+                background: #f1f5f9;
+                color: #64748b;
+              }
+            }
+          }
+        }
+  
+        .empty-classes {
+          text-align: center;
+          padding: 2rem;
+          color: #64748b;
+  
+          svg {
+            margin-bottom: 0.5rem;
+            color: #000000;
+          }
+        }
+  
+        .class-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+      }
+    }
+  
+    .class-item {
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  
+      .class-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        transition: background 0.2s ease;
+  
+        &:hover {
+          background: #f8fafc;
+        }
+  
+        .class-title {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+  
+          h4 {
+            margin: 0;
+            font-size: 1rem;
+          }
+        }
+  
+        .class-actions {
+          display: flex;
+          gap: 0.5rem;
+  
+          button {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.85rem;
+  
+            &.add-content-btn {
+              background: #f1f5f9;
+              color: #334155;
+  
+              &:hover {
+                background: #e2e8f0;
+              }
+            }
+  
+            &.delete-btn {
+              background: #fee2e2;
+              color: #b91c1c;
+  
+              &:hover {
+                background: #fecaca;
+              }
+            }
+          }
+        }
+      }
+  
+      .class-content {
+        padding: 0 1rem 1rem;
+  
+        .new-content-form {
+          background: #f8fafc;
+          padding: 1rem;
+          border-radius: 8px;
+          margin-bottom: 1rem;
+  
+          select, input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+          }
+  
+          .form-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+  
+            button {
+              padding: 0.25rem 0.75rem;
+              border-radius: 4px;
+              border: none;
+              cursor: pointer;
+              font-size: 0.9rem;
+  
+              &:first-child {
+                background: #3b82f6;
+                color: rgb(0, 0, 0);
+              }
+  
+              &:last-child {
+                background: #f1f5f9;
+                color: #64748b;
+              }
+            }
+          }
+        }
+  
+        .content-sections {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+        }
+      }
+    }
+  
+    .content-section {
+      h5 {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0 0 0.5rem 0;
+        font-size: 0.95rem;
+        color: #334155;
+  
+        span {
+          color: #64748b;
+          font-weight: normal;
+        }
+      }
+  
+      .empty-content {
+        color: #64748b;
+        font-size: 0.9rem;
+        padding: 0.5rem 0;
+      }
+  
+      .content-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 0.75rem;
+      }
+  
+      .content-item {
+        padding: 0.75rem;
+        border-radius: 6px;
+        border: 1px solid;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+  
+        .content-info {
+          h6 {
+            margin: 0 0 0.25rem 0;
+            font-size: 0.9rem;
+          }
+  
+          p {
+            margin: 0;
+            font-size: 0.75rem;
+            color: #64748b;
+          }
+        }
+  
+        .delete-btn {
+          background: transparent;
+          border: none;
+          color: #b91c1c;
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity 0.2s ease;
+        }
+  
+        &:hover .delete-btn {
+          opacity: 1;
+        }
+      }
+    }
+  }
