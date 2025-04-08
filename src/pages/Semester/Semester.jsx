@@ -1,26 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../../firebase';
-import { collection, query, where, getDocs, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { auth, db, storage } from '../../firebase';
+import { deleteObject, ref } from 'firebase/storage';
+import { 
+  collection, query, where, getDocs, getDoc, doc, 
+  setDoc, deleteDoc, updateDoc, writeBatch
+} from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiPlus, FiChevronDown, FiChevronRight, FiTrash2, FiEdit2, FiBook, FiFileText } from 'react-icons/fi';
+import { DndContext, closestCenter, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core';
+import { FiPlus, FiChevronDown, FiChevronRight, FiTrash2, FiBook, FiFileText, FiX, FiMove, FiEdit, FiSave } from 'react-icons/fi';
 import { FaGraduationCap } from 'react-icons/fa';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragOverlay
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import Sidebar from '../../components/Sidebar/Sidebar';
+import UploadPage from '../UploadPage/UploadPage';
 import './Semester.scss';
+
 
 const SemesterPage = () => {
   const [user, setUser] = useState(null);
@@ -29,12 +23,14 @@ const SemesterPage = () => {
   const [newSemesterOpen, setNewSemesterOpen] = useState(false);
   const [newSemesterName, setNewSemesterName] = useState('');
   const [newSemesterColor, setNewSemesterColor] = useState('#3b82f6');
+  const [uploadPopup, setUploadPopup] = useState({
+    open: false,
+    semesterId: null,
+    classId: null,
+    type: 'textbook'
+  });
+  const [activeDragItem, setActiveDragItem] = useState(null);
   const navigate = useNavigate();
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor)
-  );
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -45,7 +41,6 @@ const SemesterPage = () => {
         navigate('/login');
       }
     });
-
     return () => unsubscribe();
   }, [navigate]);
 
@@ -60,7 +55,6 @@ const SemesterPage = () => {
         classes: doc.data().classes || [],
         isOpen: false
       }));
-      // Sort by semester name (reverse chronological)
       semesterList.sort((a, b) => b.name.localeCompare(a.name));
       setSemesters(semesterList);
     } catch (error) {
@@ -109,87 +103,401 @@ const SemesterPage = () => {
     }
   };
 
+  const openUploadPopup = (semesterId, classId, type) => {
+    setUploadPopup({
+      open: true,
+      semesterId,
+      classId,
+      type
+    });
+  };
+
+  const closeUploadPopup = () => {
+    setUploadPopup({
+      open: false,
+      semesterId: null,
+      classId: null,
+      type: 'textbook'
+    });
+  };
+  
+  const handleUploadComplete = async (fileData) => {
+    try {
+      const semesterRef = doc(db, 'semesters', uploadPopup.semesterId);
+      const semesterDoc = await getDoc(semesterRef);
+      
+      if (!semesterDoc.exists()) {
+        throw new Error("Semester document not found");
+      }
+      
+      const semesterData = semesterDoc.data();
+      
+      const updatedClasses = semesterData.classes.map(cls => {
+        if (cls.id === uploadPopup.classId) {
+          const currentContent = cls[uploadPopup.type] || [];
+          return {
+            ...cls,
+            [uploadPopup.type]: [
+              ...currentContent,
+              {
+                id: fileData.id,
+                name: fileData.name,
+                url: fileData.url,
+                size: fileData.size,
+                type: fileData.type,
+                addedAt: new Date()
+              }
+            ]
+          };
+        }
+        return cls;
+      });
+
+      await updateDoc(semesterRef, {
+        classes: updatedClasses
+      });
+
+      closeUploadPopup();
+      fetchSemesters(user.uid);
+    } catch (error) {
+      console.error("Error updating semester with new content:", error);
+    }
+  };
+
+  const handleDragStart = (event) => {
+    const { active } = event;
+    setActiveDragItem(active.data.current);
+  };
+
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    
+    if (!active || !over || active.id === over.id) {
+      setActiveDragItem(null);
+      return;
+    }
+  
+    const activeData = active.data.current;
+    const overData = over.data.current;
+  
+    if (!activeData || !overData) {
+      setActiveDragItem(null);
+      return;
+    }
+  
+    try {
+      if (activeData.type === 'pdf' && overData.type === 'content-section') {
+        // If moving within the same class but different section
+        if (activeData.classId === overData.classId) {
+          await movePDFBetweenSections(activeData, overData);
+        } 
+        // If moving to a different class
+        else {
+          await movePDFToDifferentClass(activeData, overData);
+        }
+      }
+      
+      fetchSemesters(user.uid);
+    } catch (error) {
+      console.error("Error handling drag:", error);
+    } finally {
+      setActiveDragItem(null);
+    }
+  };
+
+  const movePDFBetweenSections = async (activeData, overData) => {
+    const { semesterId, classId, pdf, currentSection } = activeData;
+    const { sectionType: targetSection } = overData;
+  
+    try {
+      const semesterRef = doc(db, 'semesters', semesterId);
+      const semesterDoc = await getDoc(semesterRef);
+      
+      if (!semesterDoc.exists()) {
+        throw new Error(`Semester document not found: ${semesterId}`);
+      }
+
+      const semesterData = semesterDoc.data();
+
+      const updatedClasses = semesterData.classes.map(cls => {
+        if (cls.id === classId) {
+          // Remove from current section
+          const currentItems = cls[currentSection] || [];
+          const filteredCurrentItems = currentItems.filter(item => item.id !== pdf.id);
+          
+          // Add to target section
+          const targetItems = cls[targetSection] || [];
+          const updatedTargetItems = [...targetItems];
+          
+          // Only add if not already in target section
+          if (!targetItems.some(item => item.id === pdf.id)) {
+            updatedTargetItems.push(pdf);
+          }
+          
+          return {
+            ...cls,
+            [currentSection]: filteredCurrentItems,
+            [targetSection]: updatedTargetItems
+          };
+        }
+        return cls;
+      });
+
+      await updateDoc(semesterRef, { classes: updatedClasses });
+    } catch (error) {
+      console.error('Error in movePDFBetweenSections:', error);
+      throw error;
+    }
+  };
+  const movePDFToDifferentClass = async (activeData, overData) => {
+    const { semesterId, classId: sourceClassId, pdf, currentSection } = activeData;
+    const { classId: targetClassId, sectionType: targetSection = currentSection } = overData;
+  
+    try {
+      // Get the semester document
+      const semesterDoc = await getDoc(doc(db, 'semesters', semesterId));
+      
+      if (!semesterDoc.exists()) {
+        throw new Error("Semester not found");
+      }
+  
+      // Create a DEEP COPY of the data
+      const semesterData = JSON.parse(JSON.stringify(semesterDoc.data()));
+  
+      // Find the source and target classes
+      const sourceClassIndex = semesterData.classes.findIndex(c => c.id === sourceClassId);
+      const targetClassIndex = semesterData.classes.findIndex(c => c.id === targetClassId);
+  
+      if (sourceClassIndex === -1 || targetClassIndex === -1) {
+        throw new Error("Source or target class not found");
+      }
+  
+      // 1. Remove from source class's current section
+      semesterData.classes[sourceClassIndex][currentSection] = 
+        semesterData.classes[sourceClassIndex][currentSection]?.filter(item => item.id !== pdf.id) || [];
+  
+      // 2. Add to target class's target section
+      if (!semesterData.classes[targetClassIndex][targetSection]) {
+        semesterData.classes[targetClassIndex][targetSection] = [];
+      }
+      semesterData.classes[targetClassIndex][targetSection].push(pdf);
+  
+      // 3. Update the semester document
+      await updateDoc(doc(db, 'semesters', semesterId), {
+        classes: semesterData.classes
+      });
+  
+    } catch (error) {
+      console.error("Error moving PDF between classes:", error);
+      throw error;
+    }
+  };
   return (
-    <div className="semester-page">
-      <div className="header">
-        <h1><FaGraduationCap /> My Semesters</h1>
-        <button 
-          className="add-semester-btn"
-          onClick={() => setNewSemesterOpen(!newSemesterOpen)}
-        >
-          <FiPlus /> Add Semester
-        </button>
-      </div>
-
-      <AnimatePresence>
-        {newSemesterOpen && (
-          <motion.div 
-            className="new-semester-form"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
+    <DndContext
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="semester-page">
+        <Sidebar />
+        <div className="header">
+          <h1><FaGraduationCap /> My Semesters</h1>
+          <button 
+            className="add-semester-btn"
+            onClick={() => setNewSemesterOpen(!newSemesterOpen)}
           >
-            <input
-              type="text"
-              placeholder="Semester name (e.g. Fall 2025)"
-              value={newSemesterName}
-              onChange={(e) => setNewSemesterName(e.target.value)}
-            />
-            <div className="color-picker">
-              <label>Color:</label>
-              <input
-                type="color"
-                value={newSemesterColor}
-                onChange={(e) => setNewSemesterColor(e.target.value)}
-              />
-            </div>
-            <div className="form-actions">
-              <button onClick={addSemester}>Save</button>
-              <button onClick={() => setNewSemesterOpen(false)}>Cancel</button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {loading ? (
-        <div className="loading">Loading...</div>
-      ) : semesters.length === 0 ? (
-        <div className="empty-state">
-          <FiBook size={64} />
-          <p>No semesters yet. Add your first semester to get started!</p>
+            <FiPlus /> Add Semester
+          </button>
         </div>
-      ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-        >
-          <SortableContext 
-            items={semesters.map(semester => semester.id)} 
-            strategy={verticalListSortingStrategy}
-          >
-            <div className="semester-list">
-              {semesters.map(semester => (
-                <SemesterItem
-                  key={semester.id}
-                  semester={semester}
-                  onToggle={toggleSemester}
-                  onDelete={deleteSemester}
-                  userId={user?.uid}
+
+        <AnimatePresence>
+          {newSemesterOpen && (
+            <motion.div 
+              className="new-semester-form"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <input
+                type="text"
+                placeholder="Semester name (e.g. Fall 2025)"
+                value={newSemesterName}
+                onChange={(e) => setNewSemesterName(e.target.value)}
+              />
+              <div className="color-picker">
+                <label>Color:</label>
+                <input
+                  type="color"
+                  value={newSemesterColor}
+                  onChange={(e) => setNewSemesterColor(e.target.value)}
                 />
-              ))}
+              </div>
+              <div className="form-actions">
+                <button onClick={addSemester}>Save</button>
+                <button onClick={() => setNewSemesterOpen(false)}>Cancel</button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {uploadPopup.open && (
+            <motion.div 
+              className="upload-modal-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeUploadPopup}
+            >
+              <motion.div 
+                className="upload-modal-content"
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button className="close-button" onClick={closeUploadPopup}>
+                  <FiX />
+                </button>
+                <UploadPage 
+                  type={uploadPopup.type}
+                  onUploadComplete={handleUploadComplete}
+                  onCancel={closeUploadPopup}
+                />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {loading ? (
+          <div className="loading">Loading...</div>
+        ) : semesters.length === 0 ? (
+          <div className="empty-state">
+            <FiBook size={64} />
+            <p>No semesters yet. Add your first semester to get started!</p>
+          </div>
+        ) : (
+          <div className="semester-list">
+            {semesters.map(semester => (
+              <SemesterItem
+                key={semester.id}
+                semester={semester}
+                onToggle={toggleSemester}
+                onDelete={deleteSemester}
+                onAddContent={openUploadPopup}
+                userId={user?.uid}
+              />
+            ))}
+          </div>
+        )}
+
+        <DragOverlay>
+          {activeDragItem ? (
+            <div className="drag-preview">
+              {activeDragItem.type === 'pdf' ? (
+                <div className="content-item">
+                  <h6>{activeDragItem.pdf.name}</h6>
+                  <FiMove className="drag-handle" />
+                </div>
+              ) : activeDragItem.type === 'class' ? (
+                <div className="class-item">
+                  <h4>{activeDragItem.cls.name}</h4>
+                </div>
+              ) : null}
             </div>
-          </SortableContext>
-        </DndContext>
-      )}
-    </div>
+          ) : null}
+        </DragOverlay>
+      </div>
+    </DndContext>
   );
 };
 
-const SemesterItem = ({ semester, onToggle, onDelete, userId }) => {
+const SemesterItem = ({ semester, onToggle, onDelete, onAddContent, userId }) => {
   const [newClassName, setNewClassName] = useState('');
   const [newClassColor, setNewClassColor] = useState('#10b981');
   const [addingClass, setAddingClass] = useState(false);
+  const [editingSemester, setEditingSemester] = useState(false);
+  const [semesterName, setSemesterName] = useState(semester.name);
+  const { setNodeRef } = useDroppable({
+    id: `semester-${semester.id}`,
+    data: {
+      type: 'semester',
+      semesterId: semester.id
+    }
+  });
+
+  const handleEditSemester = async () => {
+    try {
+      await updateDoc(doc(db, 'semesters', semester.id), {
+        name: semesterName
+      });
+      setEditingSemester(false);
+    } catch (error) {
+      console.error("Error updating semester name:", error);
+    }
+  };
+
+  const handleDeleteContent = async (semesterId, classId, contentType, contentId) => {
+    try {
+      const semesterRef = doc(db, 'semesters', semesterId);
+      const semesterDoc = await getDoc(semesterRef);
+      
+      if (!semesterDoc.exists()) {
+        throw new Error("Semester not found");
+      }
+
+      const semesterData = semesterDoc.data();
+      let itemToDelete = null;
+
+      const updatedClasses = semesterData.classes.map(cls => {
+        if (cls.id === classId && cls[contentType]) {
+          const contentItem = cls[contentType].find(item => item.id === contentId);
+          if (contentItem) {
+            itemToDelete = contentItem;
+            return {
+              ...cls,
+              [contentType]: cls[contentType].filter(item => item.id !== contentId)
+            };
+          }
+        }
+        return cls;
+      });
+
+      await updateDoc(semesterRef, {
+        classes: updatedClasses
+      });
+
+      if (itemToDelete?.url) {
+        try {
+          const url = itemToDelete.url;
+          let filePath = '';
+          
+          if (url.includes('firebasestorage.googleapis.com')) {
+            const matches = url.match(/\/o\/([^?]+)/);
+            if (matches) {
+              filePath = decodeURIComponent(matches[1]);
+              filePath = filePath.replace(/%2F/g, '/');
+            }
+          } else if (url.startsWith('gs://')) {
+            filePath = url.replace(/gs:\/\/[^/]+\//, '');
+          }
+
+          if (filePath) {
+            const fileRef = ref(storage, filePath);
+            await deleteObject(fileRef);
+          }
+        } catch (storageError) {
+          console.error("Error deleting from Storage:", storageError);
+        }
+      }
+
+      onToggle(semesterId);
+    } catch (error) {
+      console.error("Error in deletion process:", error);
+      throw error;
+    }
+  };
 
   const addClass = async () => {
     if (!newClassName.trim()) return;
@@ -199,7 +507,7 @@ const SemesterItem = ({ semester, onToggle, onDelete, userId }) => {
         id: Date.now().toString(),
         name: newClassName,
         color: newClassColor,
-        textbooks: [],
+        textbook: [],
         notes: []
       }];
 
@@ -210,7 +518,7 @@ const SemesterItem = ({ semester, onToggle, onDelete, userId }) => {
       setNewClassName('');
       setNewClassColor('#10b981');
       setAddingClass(false);
-      onToggle(semester.id); // Refresh the view
+      onToggle(semester.id);
     } catch (error) {
       console.error("Error adding class: ", error);
     }
@@ -223,7 +531,7 @@ const SemesterItem = ({ semester, onToggle, onDelete, userId }) => {
         await updateDoc(doc(db, 'semesters', semester.id), {
           classes: updatedClasses
         });
-        onToggle(semester.id); // Refresh the view
+        onToggle(semester.id);
       } catch (error) {
         console.error("Error deleting class: ", error);
       }
@@ -231,18 +539,43 @@ const SemesterItem = ({ semester, onToggle, onDelete, userId }) => {
   };
 
   return (
-    <motion.div 
+    <div
+      ref={setNodeRef}
       className="semester-item"
-      style={{ borderLeft: `4px solid ${semester.color}` }}
-      layout
-      transition={{ duration: 0.2 }}
+      style={{ 
+        borderLeft: `8px solid ${semester.color}`,
+        background: `${semester.color}10`
+      }}
     >
-      <div className="semester-header" onClick={() => onToggle(semester.id)}>
+      <div className="semester-header" onClick={() => !editingSemester && onToggle(semester.id)}>
         <div className="semester-title">
           {semester.isOpen ? <FiChevronDown /> : <FiChevronRight />}
-          <h3>{semester.name}</h3>
+          {editingSemester ? (
+            <input
+              type="text"
+              value={semesterName}
+              onChange={(e) => setSemesterName(e.target.value)}
+              onBlur={handleEditSemester}
+              onKeyPress={(e) => e.key === 'Enter' && handleEditSemester()}
+              autoFocus
+            />
+          ) : (
+            <h3>{semester.name}</h3>
+          )}
         </div>
         <div className="semester-actions">
+          <button 
+            className="edit-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingSemester(!editingSemester);
+              if (editingSemester) {
+                handleEditSemester();
+              }
+            }}
+          >
+            {editingSemester ? <FiSave /> : <FiEdit />}
+          </button>
           <button 
             className="add-class-btn"
             onClick={(e) => {
@@ -274,8 +607,7 @@ const SemesterItem = ({ semester, onToggle, onDelete, userId }) => {
             transition={{ duration: 0.3 }}
           >
             {addingClass && (
-              <motion.div 
-                className="new-class-form"
+              <motion.div className="new-class-form"
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -309,69 +641,95 @@ const SemesterItem = ({ semester, onToggle, onDelete, userId }) => {
             ) : (
               <div className="class-list">
                 {semester.classes.map(cls => (
-                  <ClassItem 
-                    key={cls.id} 
-                    cls={cls} 
-                    semesterId={semester.id}
-                    onDelete={deleteClass}
-                    userId={userId}
-                  />
+                  <div key={cls.id} className="class-wrapper">
+                    <ClassItem 
+                      cls={cls} 
+                      semesterId={semester.id}
+                      onDelete={deleteClass}
+                      onAddContent={onAddContent}
+                      onDeleteContent={handleDeleteContent}
+                    />
+                  </div>
                 ))}
               </div>
             )}
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
 
-const ClassItem = ({ cls, semesterId, onDelete, userId }) => {
+const ClassItem = ({ cls, semesterId, onDelete, onAddContent, onDeleteContent }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [addingContent, setAddingContent] = useState(false);
-  const [contentType, setContentType] = useState('textbook');
-  const [contentName, setContentName] = useState('');
+  const [editingClass, setEditingClass] = useState(false);
+  const [className, setClassName] = useState(cls.name);
+  const { setNodeRef } = useDroppable({
+    id: `class-${cls.id}`,
+    data: {
+      type: 'class',
+      classId: cls.id,
+      semesterId: semesterId
+    }
+  });
 
-  const addContent = async () => {
-    if (!contentName.trim()) return;
-
+  const handleEditClass = async () => {
     try {
-      const classRef = doc(db, 'semesters', semesterId);
-      const updatedClasses = // ... logic to add content to the class
+      const semesterRef = doc(db, 'semesters', semesterId);
+      const semesterDoc = await getDoc(semesterRef);
       
-      await updateDoc(classRef, {
+      if (!semesterDoc.exists()) {
+        throw new Error("Semester not found");
+      }
+
+      const semesterData = semesterDoc.data();
+      const updatedClasses = semesterData.classes.map(c => 
+        c.id === cls.id ? { ...c, name: className } : c
+      );
+
+      await updateDoc(semesterRef, {
         classes: updatedClasses
       });
-
-      setContentName('');
-      setAddingContent(false);
-      setIsOpen(true); // Keep the class open after adding
+      setEditingClass(false);
     } catch (error) {
-      console.error("Error adding content: ", error);
+      console.error("Error updating class name:", error);
     }
   };
 
   return (
-    <motion.div 
+    <div
+      ref={setNodeRef}
       className="class-item"
-      style={{ borderLeft: `4px solid ${cls.color}` }}
-      layout
-      transition={{ duration: 0.2 }}
+      style={{ borderLeft: `8px solid ${cls.color}` }}
     >
-      <div className="class-header" onClick={() => setIsOpen(!isOpen)}>
+      <div className="class-header" onClick={() => !editingClass && setIsOpen(!isOpen)}>
         <div className="class-title">
           {isOpen ? <FiChevronDown /> : <FiChevronRight />}
-          <h4>{cls.name}</h4>
+          {editingClass ? (
+            <input
+              type="text"
+              value={className}
+              onChange={(e) => setClassName(e.target.value)}
+              onBlur={handleEditClass}
+              onKeyPress={(e) => e.key === 'Enter' && handleEditClass()}
+              autoFocus
+            />
+          ) : (
+            <h4>{cls.name}</h4>
+          )}
         </div>
         <div className="class-actions">
           <button 
-            className="add-content-btn"
+            className="edit-btn"
             onClick={(e) => {
               e.stopPropagation();
-              setAddingContent(!addingContent);
+              setEditingClass(!editingClass);
+              if (editingClass) {
+                handleEditClass();
+              }
             }}
           >
-            <FiPlus /> Add Content
+            {editingClass ? <FiSave /> : <FiEdit />}
           </button>
           <button 
             className="delete-btn"
@@ -394,90 +752,228 @@ const ClassItem = ({ cls, semesterId, onDelete, userId }) => {
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
           >
-            {addingContent && (
-              <motion.div 
-                className="new-content-form"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-              >
-                <select
-                  value={contentType}
-                  onChange={(e) => setContentType(e.target.value)}
-                >
-                  <option value="textbook">Textbook</option>
-                  <option value="notes">Notes</option>
-                </select>
-                <input
-                  type="text"
-                  placeholder={`${contentType} name`}
-                  value={contentName}
-                  onChange={(e) => setContentName(e.target.value)}
-                />
-                <div className="form-actions">
-                  <button onClick={addContent}>Add</button>
-                  <button onClick={() => setAddingContent(false)}>Cancel</button>
-                </div>
-              </motion.div>
-            )}
-
             <div className="content-sections">
               <ContentSection 
                 type="textbook" 
-                items={cls.textbooks} 
+                items={cls.textbook || []}
                 color={cls.color}
+                semesterId={semesterId}
+                classId={cls.id}
+                onAddContent={() => onAddContent(semesterId, cls.id, 'textbook')}
+                onDeleteContent={(contentId) => onDeleteContent(semesterId, cls.id, 'textbook', contentId)}
               />
               <ContentSection 
                 type="notes" 
-                items={cls.notes} 
+                items={cls.notes || []}
                 color={cls.color}
+                semesterId={semesterId}
+                classId={cls.id}
+                onAddContent={() => onAddContent(semesterId, cls.id, 'notes')}
+                onDeleteContent={(contentId) => onDeleteContent(semesterId, cls.id, 'notes', contentId)}
               />
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
 
-const ContentSection = ({ type, items, color }) => {
-  return (
-    <div className={`content-section ${type}`}>
-      <h5>
-        {type === 'textbook' ? <FiBook /> : <FiFileText />}
-        {type === 'textbook' ? 'Textbooks' : 'Notes'}
-        <span>({items.length})</span>
-      </h5>
+const ContentSection = ({ type, items, color, semesterId, classId, onAddContent, onDeleteContent }) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `section-${classId}-${type}`,
+    data: {
+      type: 'content-section',
+      sectionType: type,
+      classId: classId,
+      semesterId: semesterId
+    }
+  });
+
+  const formatFirebaseDate = (date) => {
+    if (date instanceof Date) {
+      return date.toLocaleDateString();
+    }
+    if (date && typeof date.toDate === 'function') {
+      return date.toDate().toLocaleDateString();
+    }
+    if (typeof date === 'string') {
+      try {
+        return new Date(date).toLocaleDateString();
+      } catch (e) {
+        console.error("Error parsing date string:", e);
+        return "Unknown date";
+      }
+    }
+    return "Unknown date";
+  };
+
+  const navigate = useNavigate();
+
+  const handleView = (item) => {
+    navigate('/view', { state: { file: item.url } });
+  };
+
+  const handleEditContentName = async (itemId, newName) => {
+    try {
+      const semesterRef = doc(db, 'semesters', semesterId);
+      const semesterDoc = await getDoc(semesterRef);
       
-      {items.length === 0 ? (
+      if (!semesterDoc.exists()) {
+        throw new Error("Semester not found");
+      }
+
+      const semesterData = semesterDoc.data();
+      const updatedClasses = semesterData.classes.map(c => {
+        if (c.id === classId) {
+          const updatedContent = c[type].map(content => 
+            content.id === itemId ? { ...content, name: newName } : content
+          );
+          return { ...c, [type]: updatedContent };
+        }
+        return c;
+      });
+
+      await updateDoc(semesterRef, {
+        classes: updatedClasses
+      });
+    } catch (error) {
+      console.error("Error updating content name:", error);
+    }
+  };
+
+  return (
+    <div 
+      className={`content-section ${type} ${isOver ? 'drag-over' : ''}`} 
+      ref={setNodeRef}
+    >
+      <div className="section-header">
+        <h5>
+          {type === 'textbook' ? <FiBook /> : <FiFileText />}
+          {type === 'textbook' ? 'Textbooks' : 'Notes'}
+          <span>({items?.length || 0})</span>
+        </h5>
+        <button 
+          className="add-content-btn"
+          onClick={onAddContent}
+        >
+          <FiPlus /> Add
+        </button>
+      </div>
+      
+      {!items || items.length === 0 ? (
         <div className="empty-content">
-          <p>No {type}s yet</p>
+          <p>No {type === 'textbook' ? 'textbooks' : 'notes'} yet</p>
         </div>
       ) : (
-        <DndContext>
-          <SortableContext items={items.map(item => item.id)}>
-            <div className="content-list">
-              {items.map(item => (
-                <motion.div 
-                  key={item.id}
-                  className="content-item"
-                  style={{ backgroundColor: `${color}20`, borderColor: color }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <div className="content-info">
-                    <h6>{item.name}</h6>
-                    <p>Added: {new Date(item.addedAt).toLocaleDateString()}</p>
-                  </div>
-                  <button className="delete-btn">
-                    <FiTrash2 size={14} />
-                  </button>
-                </motion.div>
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+        <div className="content-list">
+          {items.map(item => (
+            <DraggableItem 
+              key={item.id} 
+              item={item} 
+              type={type}
+              semesterId={semesterId}
+              classId={classId}
+            >
+              {({ dragHandleProps }) => (
+                <EditableContentItem
+                  item={item}
+                  onSave={handleEditContentName}
+                  onDelete={onDeleteContent}
+                  onView={handleView}
+                  addedDate={formatFirebaseDate(item.addedAt)}
+                  dragHandleProps={dragHandleProps}
+                />
+              )}
+            </DraggableItem>
+          ))}
+        </div>
       )}
+    </div>
+  );
+};
+
+const EditableContentItem = ({ item, onSave, onDelete, onView, addedDate, dragHandleProps }) => {
+  const [editing, setEditing] = useState(false);
+  const [contentName, setContentName] = useState(item.name);
+
+  const handleSave = () => {
+    onSave(item.id, contentName);
+    setEditing(false);
+  };
+
+  return (
+    <div className="content-item">
+      <div className="content-info">
+        {editing ? (
+          <input
+            type="text"
+            value={contentName}
+            onChange={(e) => setContentName(e.target.value)}
+            onBlur={handleSave}
+            onKeyPress={(e) => e.key === 'Enter' && handleSave()}
+            autoFocus
+          />
+        ) : (
+          <h6 onClick={() => setEditing(true)}>{item.name}</h6>
+        )}
+        <p>Added: {addedDate}</p>
+        <button 
+          className="view-button"
+          onClick={onView}
+        >
+          View
+        </button>
+      </div>
+      <button 
+        className="edit-btn"
+        onClick={() => editing ? handleSave() : setEditing(true)}
+      >
+        {editing ? <FiSave size={14} /> : <FiEdit size={14} />}
+      </button>
+      <button 
+        className="delete-btn"
+        onClick={() => onDelete(item.id)}
+      >
+        <FiTrash2 size={14} />
+      </button>
+      <div {...dragHandleProps}>
+        <FiMove className="drag-handle" />
+      </div>
+    </div>
+  );
+};
+
+
+const DraggableItem = ({ item, type, semesterId, classId, children }) => {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: `pdf-${item.id}`,
+    data: {
+      type: 'pdf',
+      pdf: item,
+      currentSection: type,
+      semesterId: semesterId,
+      classId: classId
+    }
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    zIndex: 10
+  } : undefined;
+
+  return (
+    <div 
+      ref={setNodeRef}
+      style={style}
+      className="draggable-item"
+    >
+      {children({
+        dragHandleProps: {
+          ...attributes,
+          ...listeners
+        }
+      })}
     </div>
   );
 };

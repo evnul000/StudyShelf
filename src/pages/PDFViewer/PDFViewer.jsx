@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Viewer } from '@react-pdf-viewer/core';
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
@@ -13,8 +13,13 @@ const PDFViewer = () => {
   const navigate = useNavigate();
   const fileUrl = location.state?.file;
 
+  useEffect(() => {
+    if (!fileUrl) {
+      navigate('/dashboard');
+    }
+  }, [fileUrl, navigate]);
+
   if (!fileUrl) {
-    navigate('/dashboard');
     return null;
   }
 
@@ -26,7 +31,7 @@ const PDFViewer = () => {
   });
 
   return (
-    <div>
+    <div className="pdf-viewer-page">
       <Navbar/>
       <div className="pdf-viewer-container">
         <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
@@ -40,8 +45,8 @@ const PDFViewer = () => {
               )}
               onError={(error) => {
                 console.error(error);
+                alert('Failed to load PDF. Please try again.');
                 navigate('/dashboard');
-                alert('Failed to load PDF');
               }}
             />
           </div>

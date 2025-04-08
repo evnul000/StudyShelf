@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'; // Add this import
 import { auth, db, storage } from '../../firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import userDefaultPic from '../../assets/user.png';
 import './Sidebar.scss';
@@ -16,7 +16,15 @@ const Sidebar = () => {
   });
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate(); // Initialize the navigate function
-
+  const handleSignOut = async () => {
+      try {
+        await signOut(auth);
+        alert('You have been signed out successfully!');
+        navigate('/');
+      } catch (error) {
+        alert('Error signing out: ' + error.message);
+      }
+    };
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
@@ -116,6 +124,15 @@ const Sidebar = () => {
 
         <nav className="sidebar-nav">
           <ul>
+          <li>
+              <button 
+                className="nav-item"
+                onClick={() => navigate('/dashboard')} // Add this onClick handler
+              >
+                <span className="icon">📖</span>
+                <span>Dashboard</span>
+              </button>
+            </li>
             <li>
               <button 
                 className="nav-item"
@@ -137,6 +154,16 @@ const Sidebar = () => {
                 <span>Account Settings</span>
               </button>
             </li>
+            <li>
+              <button 
+                className="nav-item"
+                onClick={handleSignOut} // Add this onClick handler
+              >
+                <span className="icon">🔚</span>
+                <span>Sign Out</span>
+              </button>
+            </li>
+            <li></li>
           </ul>
         </nav>
       </div>

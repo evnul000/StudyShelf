@@ -1,97 +1,109 @@
-.upload-page {
+/* Semester.scss additions */
+.upload-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  color: black;
+}
+
+.upload-modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 600px;
+  position: relative;
+}
+
+.close-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #64748b;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.add-content-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #f1f5f9;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  
+  &:hover {
+    background: #e2e8f0;
+  }
+}
+
+/* UploadPage.scss additions */
+.upload-page-popup {
+  .upload-label{
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    
+  }
+  .button-group {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 80vh;
-    padding: 2rem;
-   .type-selector{
-    color:black;
-   }
-    .upload-container {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      padding: 2rem;
-      width: 100%;
-      max-width: 600px;
-      text-align: center;
-  
-      h2 {
-        color: #2a2a2a;
-        margin-bottom: 1.5rem;
-      }
-  
-      .upload-box {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-      }
-  
-      .upload-label {
-        background: #f8fafc;
-        border: 2px dashed #cbd5e1;
-        border-radius: 8px;
-        padding: 2rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-  
-        &:hover {
-          background: #f1f5f9;
-          border-color: #94a3b8;
-        }
-      }
-  
-      .upload-info {
-        text-align: left;
-        background: #f8fafc;
-        padding: 1rem;
-        border-radius: 8px;
-        margin-top: -1rem;
-  
-        p {
-          margin: 0.5rem 0;
-          color: #475569;
-        }
-      }
-  
-      .progress-bar {
-        height: 8px;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    
+    button {
+      flex: 1;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .cancel-button {
+      background: #f1f5f9;
+      color: #64748b;
+      border: none;
+      
+      &:hover {
         background: #e2e8f0;
-        border-radius: 4px;
-        overflow: hidden;
-        margin-top: 1rem;
-  
-        .progress-fill {
-          height: 100%;
-          background: #3b82f6;
-          transition: width 0.3s ease;
-        }
       }
-  
-      .error-message {
-        color: #ef4444;
-        margin: 0.5rem 0;
+    }
+    
+    .upload-button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      
+      &:hover:not(:disabled) {
+        background: #2563eb;
       }
-  
-      .upload-button {
-        background: #3b82f6;
-        color: white;
-        border: none;
-        padding: 0.75rem 1.5rem;
-        border-radius: 8px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background 0.3s ease;
-        align-self: center;
-  
-        &:hover:not(:disabled) {
-          background: #2563eb;
-        }
-  
-        &:disabled {
-          background: #94a3b8;
-          cursor: not-allowed;
-        }
+      
+      &:disabled {
+        background: #94a3b8;
+        cursor: not-allowed;
       }
     }
   }
+}

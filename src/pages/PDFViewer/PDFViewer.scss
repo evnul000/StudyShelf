@@ -1,58 +1,103 @@
-// PDFViewer.scss
 .pdf-viewer-container {
+  height: 100vh;
+  width: 100vw;
+  margin: 8vh 0 0 0;
+  padding: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
 
+  // Main viewer area
+  .rpv-core__viewer {
+    flex: 1;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  // Toolbar customization
+  .rpv-default-layout__toolbar {
+    background: #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 4px;
+
+    // Make toolbar buttons more touch-friendly
+    button {
+      min-width: 40px;
+      min-height: 40px;
+      margin: 2px;
+    }
+  }
+
+  // Page container
+  .rpv-core__page-layer {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin: 16px auto;
+  }
+
+  .no-file {
+    padding: 2rem;
+    text-align: center;
+    color: #666;
+    font-size: 1.2rem;
+  }
+
+  // Loading state
+  .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    font-size: 1.2rem;
+    color: #666;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .pdf-viewer-container {
+    margin: 0;
     height: 100vh;
-    width: 100vw; // Use viewport width instead of 100%
-    margin: 8vh 0 0 0;
-    padding: 0;
+    width: 100vw;
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
+    
+   
   
-    // Main viewer area
-    .rpv-core__viewer {
-      flex: 1;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-  
-    // Toolbar customization
-    .rpv-default-layout__toolbar {
-      background: #f3f4f6;
+
+    .rpv-default-layout__sidebar {
+      
+      
+      border-right: none;
       border-bottom: 1px solid #e5e7eb;
     }
-  
-    // Page container
+
+    
+
+    // Adjust toolbar for touch
+    .rpv-default-layout__toolbar {
+      padding: 8px 4px;
+
+      button {
+        padding: 8px;
+        margin: 2px;
+      }
+    }
+
+    // Make page fit width by default
     .rpv-core__page-layer {
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      margin: 16px auto;
+      margin: 8px auto;
+      max-width: 100% !important;
+      transform: none !important;
     }
-  
-    .no-file {
-      padding: 2rem;
-      text-align: center;
-      color: #666;
-      font-size: 1.2rem;
-    }
-  }
-  
-  // Responsive adjustments
-  @media (max-width: 768px) {
-    .pdf-viewer-container {
-      height: auto;
-      min-height: 100vh;
-      max-width: 100vh;
-      .rpv-default-layout__body {
-        flex-direction: column;
-      }
-      
-      .rpv-default-layout__sidebar {
-        width: 100% !important;
-        border-right: none;
-        border-bottom: 1px solid #e5e7eb;
-      }
+
+    // Improve touch targets
+    .rpv-core__inner-page {
+      touch-action: pan-y pinch-zoom;
     }
   }
+}
