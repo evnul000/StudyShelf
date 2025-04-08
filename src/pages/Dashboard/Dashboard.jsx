@@ -209,7 +209,10 @@ const Dashboard = () => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(currentMonth);
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
-
+  
+    // Get the day of week for the first day of month (0-6 where 0 is Sunday)
+    const startDay = monthStart.getDay();
+    
     return (
       <div className="calendar-grid">
         <div className="calendar-header">
@@ -219,29 +222,60 @@ const Dashboard = () => {
         </div>
         
         <div className="calendar-days">
+          {/* Add empty cells for days before the first day of month */}
+          {Array.from({ length: startDay }).map((_, i) => (
+            <div key={`empty-${i}`} className="calendar-day empty"></div>
+          ))}
+          
           {daysInMonth.map(day => {
             const dayEvents = events.filter(event => isSameDay(event.date, day));
             const isSelected = isSameDay(day, selectedDate);
-            const isCurrentMonth = isSameMonth(day, currentMonth);
+            const now = new Date();
             
             return (
               <div 
                 key={day.toString()}
-                className={`calendar-day 
-                  ${isCurrentMonth ? '' : 'other-month'} 
-                  ${isSelected ? 'selected' : ''}`}
+                className={`calendar-day ${isSelected ? 'selected' : ''}`}
                 onClick={() => handleDateClick(day)}
               >
                 <div className="day-number">{format(day, 'd')}</div>
                 {dayEvents.length > 0 && (
                   <div className="day-events">
-                    {dayEvents.slice(0, 2).map(event => (
-                      <div 
-                        key={event.id} 
-                        className={`event-dot ${event.type} ${event.completed ? 'completed' : ''}`}
-                        title={event.title}
-                      />
-                    ))}
+                    {dayEvents.slice(0, 2).map(event => {
+                      // Calculate if event is late or due soon
+                      const eventDateTime = new Date(event.date);
+                      if (event.dueTime) {
+                        const [hours, minutes] = event.dueTime.split(':');
+                        eventDateTime.setHours(parseInt(hours, 10), parseInt(minutes, 10));
+                      }
+                      
+                      const isLate = eventDateTime < now;
+                      const isDueSoon = !isLate && 
+                        (eventDateTime - now) < (60 * 60 * 1000); // Less than 1 hour
+                      
+                      return (
+                        <div key={event.id} className="event-item-small">
+                          <div 
+                            className={`event-type-bar ${event.type} ${event.completed ? 'completed' : ''}`}
+                          />
+                          <div className="event-title-small">
+                            {event.title.length > 10 
+                              ? `${event.title.substring(0, 7)}...` 
+                              : event.title}
+                          </div>
+                          {event.dueTime && (
+                            <div className={`event-time-small ${isLate ? 'late' : ''} ${isDueSoon ? 'due-soon' : ''}`}>
+                              {event.dueTime}
+                              {(isLate || isDueSoon) && (
+                                <span className="time-indicator">
+                                  {isLate ? '🕒' : '⏰'}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                     {dayEvents.length > 2 && (
                       <div className="more-events">+{dayEvents.length - 2}</div>
                     )}

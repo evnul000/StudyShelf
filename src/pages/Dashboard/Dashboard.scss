@@ -264,13 +264,102 @@
   }
 
   .calendar-section {
+    .event-item-small {
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+      margin-bottom: 0.2rem;
+      font-size: 0.6rem;
+      line-height: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      width: 100%;
+      
+      @media (min-width: 768px) {
+        font-size: 0.7rem;
+        gap: 0.3rem;
+      }
+    }
+    
+    .event-type-bar {
+      width: 3px;
+      height: 12px;
+      border-radius: 2px;
+      flex-shrink: 0;
+      
+      &.homework {
+        background: #4299e1;
+      }
+      
+      &.exam {
+        background: #f56565;
+      }
+      
+      &.completed {
+        opacity: 0.5;
+      }
+    }
+    
+    .event-title-small {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .event-time-small {
+      font-size: 0.5rem;
+      color: #718096;
+      display: flex;
+      align-items: center;
+      gap: 0.1rem;
+      
+      &.late {
+        color: #f56565;
+      }
+      
+      &.due-soon {
+        color: #ed8936;
+      }
+      
+      .time-indicator {
+        font-size: 0.6rem;
+      }
+    }
+    
+    // Update the calendar-day to accommodate more content
+    .calendar-day {
+      padding: 0.15rem;
+      
+      @media (min-width: 768px) {
+        padding: 0.25rem;
+      }
+      
+      .day-number {
+        align-self: flex-start;
+      }
+      
+      .day-events {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+        overflow: hidden;
+        width: 100%;
+        
+        @media (min-width: 768px) {
+          gap: 0.2rem;
+        }
+      }
+    }
+  
     .month-navigation {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 1rem;
       margin-bottom: 1rem;
-
+  
       h3 {
         margin: 0;
         font-size: 1rem;
@@ -280,7 +369,7 @@
           font-size: 1.1rem;
         }
       }
-
+  
       button {
         background: none;
         border: none;
@@ -293,13 +382,13 @@
         @media (min-width: 768px) {
           font-size: 1.2rem;
         }
-
+  
         &:hover {
           background: #edf2f7;
         }
       }
     }
-
+  
     .calendar-grid {
       display: flex;
       flex-direction: column;
@@ -317,12 +406,12 @@
         @media (min-width: 768px) {
           font-size: 0.85rem;
         }
-
+  
         .calendar-day-header {
           padding: 0.5rem;
         }
       }
-
+  
       .calendar-days {
         display: grid;
         grid-template-columns: repeat(7, 1fr);
@@ -331,10 +420,9 @@
         @media (min-width: 768px) {
           gap: 0.5rem;
         }
-
+  
         .calendar-day {
           aspect-ratio: 1;
-          padding: 0.25rem;
           border-radius: 6px;
           background: #f8fafc;
           cursor: pointer;
@@ -343,23 +431,22 @@
           flex-direction: column;
           
           @media (min-width: 768px) {
-            padding: 0.5rem;
             border-radius: 8px;
           }
-
+  
           &:hover {
             background: #edf2f7;
           }
-
+  
           &.selected {
             background: #bee3f8;
             font-weight: bold;
           }
-
+  
           &.other-month {
             opacity: 0.5;
           }
-
+  
           .day-number {
             font-size: 0.8rem;
             margin-bottom: 0.1rem;
@@ -369,18 +456,13 @@
               margin-bottom: 0.25rem;
             }
           }
-
+  
           .day-events {
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 0.1rem;
             overflow: hidden;
-            
-            @media (min-width: 768px) {
-              gap: 0.2rem;
-            }
-
+  
             .event-dot {
               height: 3px;
               border-radius: 2px;
@@ -389,20 +471,20 @@
               @media (min-width: 768px) {
                 height: 4px;
               }
-
+  
               &.homework {
                 background: #4299e1;
               }
-
+  
               &.exam {
                 background: #f56565;
               }
-
+  
               &.completed {
                 opacity: 0.5;
               }
             }
-
+  
             .more-events {
               font-size: 0.6rem;
               color: #718096;
@@ -417,6 +499,7 @@
       }
     }
   }
+  
 
   .modal-overlay {
     position: fixed;

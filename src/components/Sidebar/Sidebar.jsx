@@ -143,9 +143,10 @@ const Sidebar = () => {
               </button>
             </li>
             <li>
-              <button className="nav-item">
+              <button className="nav-item"
+              onClick={() => navigate('/studycards')}>
                 <span className="icon">📁</span>
-                <span>Folders</span>
+                <span>StudyCards</span>
               </button>
             </li>
             <li>
