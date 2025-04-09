@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth,setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { getAuth,setPersistence, browserLocalPersistence, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -28,6 +28,7 @@ setPersistence(auth, browserLocalPersistence)
   });
 
 const db = getFirestore(app);
+const googleProvider = new GoogleAuthProvider();
 const storage = getStorage(app);
 
-export { auth, db, storage };
+export { auth, db, storage, googleProvider };

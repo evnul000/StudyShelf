@@ -9,6 +9,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { FiBook, FiFileText, FiUploadCloud, FiSearch, FiCalendar, FiCheck, FiPlus } from 'react-icons/fi';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay } from 'date-fns';
 import Sidebar from '../../components/Sidebar/Sidebar';
+import { FcFolder } from 'react-icons/fc';
 import './Dashboard.scss';
 
 const Dashboard = () => {
@@ -20,6 +21,7 @@ const Dashboard = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [events, setEvents] = useState([]);
+  const [recentStudySets, setRecentStudySets] = useState([]);
   const [newEvent, setNewEvent] = useState({
     title: '',
     type: 'homework',
@@ -28,6 +30,35 @@ const Dashboard = () => {
   });
   const [showEventModal, setShowEventModal] = useState(false);
   const navigate = useNavigate();
+
+// Add this useEffect hook to fetch recent study sets
+useEffect(() => {
+  const fetchRecentStudySets = async (userId) => {
+    try {
+      const q = query(
+        collection(db, 'studySets'),
+        where('userId', '==', userId),
+        orderBy('createdAt', 'desc'),
+        limit(3)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const sets = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt.toDate()
+      }));
+      
+      setRecentStudySets(sets);
+    } catch (error) {
+      console.error("Error fetching recent study sets: ", error);
+    }
+  };
+
+  if (user) {
+    fetchRecentStudySets(user.uid);
+  }
+}, [user]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -434,7 +465,50 @@ const Dashboard = () => {
               </div>
             )}
           </div>
-
+          {/* Recent Study Sets Section */}
+    <div className="recent-studysets card">
+      <div className="card-header">
+        <h2>Recent Study Sets</h2>
+        <button 
+          className="create-set-btn"
+          onClick={() => navigate('/studycards')}
+        >
+          <FiPlus /> Create New
+        </button>
+      </div>
+      
+      {recentStudySets.length === 0 ? (
+        <div className="empty-state">
+          <FcFolder size={48} />
+          <p>No study sets yet</p>
+        </div>
+      ) : (
+        <div className="studysets-list">
+          {recentStudySets.map((set) => (
+            <div 
+              key={set.id} 
+              className="studyset-item"
+              onClick={() => navigate('/studycards', { state: { studySetId: set.id } })}
+              style={{ borderLeft: `4px solid ${set.color}` }}
+            >
+              <div className="studyset-details">
+                <h3>{set.name}</h3>
+                <p>
+                  <span>{set.cards?.length || 0} cards</span>
+                  <span>•</span>
+                  <span>Created {format(set.createdAt, 'MMM d')}</span>
+                </p>
+              </div>
+              <div className="studyset-color" style={{ backgroundColor: set.color }} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+   </div>
+       
+            
+         
           {/* Calendar Section */}
           <div className="calendar-section card">
             <div className="card-header">
@@ -495,7 +569,7 @@ const Dashboard = () => {
           )}
         </div>
       </div>
-    </div>
+    
   );
 };
 

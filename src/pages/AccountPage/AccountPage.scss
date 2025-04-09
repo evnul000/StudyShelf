@@ -1,0 +1,516 @@
+// AccountPage.scss - Self-contained version with all variables included
+
+/* ===== Color Variables ===== */
+$primary-color: #4361ee;       // Main brand color
+$secondary-color: #3f37c9;    // Darker shade for accents
+$success-color: #4cc9f0;      // Success messages
+$error-color: #f72585;        // Error messages
+$text-primary: #2b2d42;       // Main text color
+$text-secondary: #8d99ae;     // Secondary text
+$light-gray: #edf2f4;         // Borders and light backgrounds
+$white: #ffffff;              // Pure white
+$black: #000000;              // Pure black
+
+/* ===== Mixins ===== */
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin box-shadow {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== Main Styles ===== */
+.account-page {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+
+  &.animate-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .back-button {
+    @include flex-center;
+    gap: 0.5rem;
+    background: none;
+    border: none;
+    color: $primary-color;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-bottom: 2rem;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: darken($primary-color, 10%);
+    }
+  }
+
+  .account-container {
+    background: $white;
+    border-radius: 12px;
+    @include box-shadow;
+    overflow: hidden;
+    animation: fadeIn 0.5s ease;
+
+    .account-header {
+      padding: 2rem;
+      text-align: center;
+      background: linear-gradient(135deg, $primary-color, lighten($primary-color, 10%));
+      color: $white;
+      position: relative;
+
+      .profile-pic-container {
+        position: relative;
+        display: inline-block;
+        margin-bottom: 1.5rem;
+
+        .profile-pic-wrapper {
+          position: relative;
+          width: 120px;
+          height: 120px;
+          margin: 0 auto;
+          border-radius: 50%;
+          overflow: hidden;
+          border: 4px solid $white;
+          @include box-shadow;
+
+          .profile-pic {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+        }
+
+        .change-photo-btn {
+          position: absolute;
+          bottom: 0;
+          right: 0;
+          background: $primary-color;
+          color: $white;
+          border: none;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          @include flex-center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          @include box-shadow;
+
+          &:hover {
+            background: darken($primary-color, 10%);
+            transform: scale(1.1);
+          }
+        }
+
+        .loading-spinner {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba($white, 0.7);
+          border-radius: 50%;
+          @include flex-center;
+
+          &::after {
+            content: '';
+            width: 24px;
+            height: 24px;
+            border: 3px solid $primary-color;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+          }
+        }
+      }
+
+      h1 {
+        margin: 0.5rem 0 0.2rem;
+        font-size: 1.8rem;
+      }
+
+      p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 1rem;
+      }
+    }
+
+    .alert {
+      padding: 0.8rem 1.2rem;
+      margin: 0 2rem;
+      border-radius: 6px;
+      @include flex-center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      animation: slideDown 0.3s ease;
+      transform-origin: top;
+
+      &.success {
+        background: rgba($success-color, 0.1);
+        color: $success-color;
+        border-left: 3px solid $success-color;
+      }
+
+      &.error {
+        background: rgba($error-color, 0.1);
+        color: $error-color;
+        border-left: 3px solid $error-color;
+      }
+    }
+
+    .account-tabs {
+      display: flex;
+      border-bottom: 1px solid $light-gray;
+
+      .tab {
+        flex: 1;
+        padding: 1rem;
+        background: none;
+        border: none;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: $text-secondary;
+        cursor: pointer;
+        @include flex-center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        position: relative;
+
+        &:hover {
+          color: $primary-color;
+        }
+
+        &.active {
+          color: $primary-color;
+
+          &::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: $primary-color;
+            animation: tabUnderline 0.3s ease;
+          }
+        }
+      }
+    }
+
+    .account-content {
+      padding: 2rem;
+
+      .profile-section {
+        .profile-info {
+          .info-item {
+            display: flex;
+            margin-bottom: 1.2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid $light-gray;
+
+            .label {
+              font-weight: 500;
+              width: 150px;
+              color: $text-secondary;
+            }
+
+            .value {
+              flex: 1;
+              color: $text-primary;
+            }
+          }
+
+          .edit-btn {
+            margin-top: 1.5rem;
+            padding: 0.7rem 1.5rem;
+            background: $primary-color;
+            color: $white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+
+            &:hover {
+              background: darken($primary-color, 10%);
+              transform: translateY(-2px);
+              box-shadow: 0 4px 8px rgba($primary-color, 0.2);
+            }
+          }
+        }
+
+        .edit-form {
+          .form-group {
+            margin-bottom: 1.5rem;
+
+            label {
+              display: block;
+              margin-bottom: 0.5rem;
+              font-weight: 500;
+              color: $text-secondary;
+            }
+
+            input {
+              width: 100%;
+              padding: 0.8rem;
+              border: 1px solid $light-gray;
+              border-radius: 6px;
+              font-size: 1rem;
+              transition: all 0.2s ease;
+
+              &:focus {
+                border-color: $primary-color;
+                box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+                outline: none;
+              }
+            }
+
+            .error-message {
+              color: $error-color;
+              font-size: 0.85rem;
+              margin-top: 0.3rem;
+            }
+          }
+
+          .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+
+            .cancel-btn {
+              padding: 0.7rem 1.5rem;
+              background: $white;
+              color: $text-secondary;
+              border: 1px solid $light-gray;
+              border-radius: 6px;
+              font-weight: 500;
+              cursor: pointer;
+              transition: all 0.2s ease;
+
+              &:hover {
+                background: $light-gray;
+              }
+            }
+
+            .save-btn {
+              padding: 0.7rem 1.5rem;
+              background: $primary-color;
+              color: $white;
+              border: none;
+              border-radius: 6px;
+              font-weight: 500;
+              cursor: pointer;
+              transition: all 0.2s ease;
+
+              &:hover {
+                background: darken($primary-color, 10%);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba($primary-color, 0.2);
+              }
+
+              &:disabled {
+                background: lighten($primary-color, 20%);
+                cursor: not-allowed;
+                transform: none;
+                box-shadow: none;
+              }
+            }
+          }
+        }
+      }
+
+      .email-section,
+      .password-section {
+        max-width: 500px;
+        margin: 0 auto;
+
+        .security-form {
+          .form-group {
+            margin-bottom: 1.5rem;
+
+            label {
+              @include flex-center;
+              gap: 0.5rem;
+              margin-bottom: 0.5rem;
+              font-weight: 500;
+              color: $text-secondary;
+            }
+
+            input {
+              width: 100%;
+              padding: 0.8rem;
+              border: 1px solid $light-gray;
+              border-radius: 6px;
+              font-size: 1rem;
+              transition: all 0.2s ease;
+
+              &:focus {
+                border-color: $primary-color;
+                box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+                outline: none;
+              }
+            }
+
+            .error-message {
+              color: $error-color;
+              font-size: 0.85rem;
+              margin-top: 0.3rem;
+            }
+          }
+
+          .update-btn {
+            width: 100%;
+            padding: 0.8rem;
+            background: $primary-color;
+            color: $white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 1rem;
+
+            &:hover {
+              background: darken($primary-color, 10%);
+              transform: translateY(-2px);
+              box-shadow: 0 4px 8px rgba($primary-color, 0.2);
+            }
+
+            &:disabled {
+              background: lighten($primary-color, 20%);
+              cursor: not-allowed;
+              transform: none;
+              box-shadow: none;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/* ===== Animations ===== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tabUnderline {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== Responsive Styles ===== */
+@media (max-width: 768px) {
+  .account-page {
+    padding: 1rem;
+
+    .account-container {
+      .account-header {
+        padding: 1.5rem;
+
+        .profile-pic-container {
+          .profile-pic-wrapper {
+            width: 100px;
+            height: 100px;
+          }
+        }
+
+        h1 {
+          font-size: 1.5rem;
+        }
+      }
+
+      .account-content {
+        padding: 1.5rem;
+
+        .profile-section {
+          .profile-info {
+            .info-item {
+              flex-direction: column;
+              gap: 0.3rem;
+
+              .label {
+                width: 100%;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .account-page {
+    .account-container {
+      .account-tabs {
+        flex-direction: column;
+
+        .tab {
+          justify-content: flex-start;
+          padding: 0.8rem 1rem;
+          border-bottom: 1px solid $light-gray;
+
+          &.active::after {
+            display: none;
+          }
+        }
+      }
+
+      .account-content {
+        padding: 1rem;
+
+        .profile-section {
+          .edit-form {
+            .form-actions {
+              flex-direction: column;
+              gap: 0.8rem;
+
+              button {
+                width: 100%;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

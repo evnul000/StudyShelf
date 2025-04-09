@@ -204,7 +204,8 @@ $transition-speed: 0.3s;
           font-size: 1rem;
 
           &:hover {
-            background: $hover-color;
+            background: rgba(152, 0, 0, 0.5);
+
           }
 
           .icon {

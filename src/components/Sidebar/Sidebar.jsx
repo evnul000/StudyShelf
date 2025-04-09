@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // Add this import
+import { useNavigate } from 'react-router-dom';
 import { auth, db, storage } from '../../firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { 
+  FiHome, 
+  FiBook, 
+  FiFolder, 
+  FiSettings, 
+  FiLogOut,
+  FiUser,
+  FiMenu,
+  FiX
+} from 'react-icons/fi';
 import userDefaultPic from '../../assets/user.png';
 import './Sidebar.scss';
 
@@ -15,16 +25,18 @@ const Sidebar = () => {
     email: ''
   });
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate(); // Initialize the navigate function
+  const navigate = useNavigate();
+
   const handleSignOut = async () => {
-      try {
-        await signOut(auth);
-        alert('You have been signed out successfully!');
-        navigate('/');
-      } catch (error) {
-        alert('Error signing out: ' + error.message);
-      }
-    };
+    try {
+      await signOut(auth);
+      alert('You have been signed out successfully!');
+      navigate('/');
+    } catch (error) {
+      alert('Error signing out: ' + error.message);
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
@@ -94,9 +106,7 @@ const Sidebar = () => {
   return (
     <>
       <button className={`hamburger ${isOpen ? 'open' : ''}`} onClick={toggleSidebar}>
-        <span></span>
-        <span></span>
-        <span></span>
+        {isOpen ? <FiX size={24} /> : <FiMenu size={24} />}
       </button>
 
       <div className={`sidebar ${isOpen ? 'open' : ''}`}>
@@ -108,7 +118,9 @@ const Sidebar = () => {
                 alt="Profile" 
                 className="profile-pic"
               />
-              <div className="profile-overlay">Change</div>
+              <div className="profile-overlay">
+                <FiUser size={16} />
+              </div>
             </label>
             <input 
               type="file" 
@@ -124,47 +136,51 @@ const Sidebar = () => {
 
         <nav className="sidebar-nav">
           <ul>
-          <li>
+            <li>
               <button 
                 className="nav-item"
-                onClick={() => navigate('/dashboard')} // Add this onClick handler
+                onClick={() => navigate('/dashboard')}
               >
-                <span className="icon">📖</span>
+                <span className="icon"><FiHome size={18} /></span>
                 <span>Dashboard</span>
               </button>
             </li>
             <li>
               <button 
                 className="nav-item"
-                onClick={() => navigate('/semester')} // Add this onClick handler
+                onClick={() => navigate('/semester')}
               >
-                <span className="icon">📚</span>
+                <span className="icon"><FiBook size={18} /></span>
                 <span>Semester</span>
               </button>
             </li>
             <li>
-              <button className="nav-item"
-              onClick={() => navigate('/studycards')}>
-                <span className="icon">📁</span>
+              <button 
+                className="nav-item"
+                onClick={() => navigate('/studycards')}
+              >
+                <span className="icon"><FiFolder size={18} /></span>
                 <span>StudyCards</span>
               </button>
             </li>
             <li>
-              <button className="nav-item">
-                <span className="icon">⚙️</span>
+              <button 
+                className="nav-item"
+                onClick={() => navigate('/account')}
+              >
+                <span className="icon"><FiSettings size={18} /></span>
                 <span>Account Settings</span>
               </button>
             </li>
             <li>
               <button 
                 className="nav-item"
-                onClick={handleSignOut} // Add this onClick handler
+                onClick={handleSignOut}
               >
-                <span className="icon">🔚</span>
+                <span className="icon"><FiLogOut size={18} /></span>
                 <span>Sign Out</span>
               </button>
             </li>
-            <li></li>
           </ul>
         </nav>
       </div>

@@ -7,7 +7,8 @@ import RegisterPage from './pages/Auth/Register';
 import Dashboard from './pages/Dashboard/Dashboard';
 import UploadPage from './pages/UploadPage/UploadPage';
 import SemesterPage from './pages/Semester/Semester';
-import StudyCards from './pages/StudyCards/StudyCards'
+import StudyCards from './pages/StudyCards/StudyCards';
+import AccountPage from './pages/AccountPage/AccountPage';
 import { auth } from './firebase';
 
 const App = () => {
@@ -52,6 +53,7 @@ const App = () => {
         <Route path="/upload" element={<UploadPage />} />
         <Route path="/semester" element={<SemesterPage/>}/>
         <Route path="/studycards" element={<StudyCards/>}/>
+        <Route path="/account" element={<AccountPage/>}/>
       </Routes>
     </>
   );
