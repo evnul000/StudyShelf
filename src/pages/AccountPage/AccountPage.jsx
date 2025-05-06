@@ -1,58 +1,131 @@
 import { useState, useRef, useEffect } from 'react';
-import { updateProfile, updateEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { updateProfile, updateEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential, onAuthStateChanged } from 'firebase/auth';
+import { updateDoc, doc, getDoc } from 'firebase/firestore';
 import { auth, db, storage } from '../../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate } from 'react-router-dom';
 import { FiUser, FiMail, FiLock, FiCamera, FiCheck, FiX, FiArrowLeft } from 'react-icons/fi';
+import Navbar from '../../components/NavBar';
+import Sidebar from '../../components/Sidebar/Sidebar';
 import './AccountPage.scss';
 
 const AccountPage = () => {
-  const user = auth.currentUser;
+  const [user, setUser] = useState(auth.currentUser);
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
-  const [profilePic, setProfilePic] = useState(user?.photoURL || '');
+  const [profilePic, setProfilePic] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [userData, setUserData] = useState({ 
+    fullName: '', 
+    email: '',
+    profilePic: '' // Added profilePic to userData state
+  });
 
   // Animation state
   const [animate, setAnimate] = useState(false);
 
   useEffect(() => {
-    setAnimate(true);
-    return () => setAnimate(false);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        
+        // Fetch user data from Firestore
+        try {
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setUserData({
+              fullName: data.fullName || '',
+              email: currentUser.email || '',
+              profilePic: data.profilePic || currentUser.photoURL || ''
+            });
+            
+            // Set profile picture from Firestore if available, otherwise use auth photoURL
+            setProfilePic(data.profilePic || currentUser.photoURL || '');
+          } else {
+            // If no document exists, use auth photoURL
+            setProfilePic(currentUser.photoURL || '');
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          // Fallback to auth photoURL if Firestore fails
+          setProfilePic(currentUser.photoURL || '');
+        }
+        
+        setAnimate(true);
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    if (!file || !user) {
+      setErrorMessage('No file selected or user not authenticated');
+      return;
+    }
 
     try {
       setIsLoading(true);
+      setErrorMessage('');
+      setSuccessMessage('');
+      
+      // Upload to Firebase Storage
       const storageRef = ref(storage, `profilePics/${user.uid}`);
       await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(storageRef);
       
+      // Update Auth profile
       await updateProfile(user, { photoURL: downloadURL });
+      
+      // Update Firestore
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, {
+        profilePic: downloadURL,
+        fullName: userData.fullName,
+        email: user.email
+      });
+
+      // Update local state
       setProfilePic(downloadURL);
+      setUserData(prev => ({ ...prev, profilePic: downloadURL }));
       setSuccessMessage('Profile picture updated successfully!');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      
     } catch (error) {
-      setErrorMessage('Failed to update profile picture.');
-      console.error(error);
+      console.error('Error updating profile picture:', error);
+      setErrorMessage(`Failed to update profile picture: ${error.message}`);
     } finally {
       setIsLoading(false);
+      setTimeout(() => {
+        setSuccessMessage('');
+        setErrorMessage('');
+      }, 5000);
     }
   };
+
 
   const handleProfileUpdate = async (values) => {
     try {
       setIsLoading(true);
-      await updateProfile(user, { displayName: values.name });
+      
+      // Update Firestore
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, {
+        fullName: values.name
+      });
+
+      // Update local state
+      setUserData(prev => ({
+        ...prev,
+        fullName: values.name
+      }));
+
       setSuccessMessage('Profile updated successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
       setIsEditing(false);
@@ -70,6 +143,13 @@ const AccountPage = () => {
       const credential = EmailAuthProvider.credential(user.email, values.currentPassword);
       await reauthenticateWithCredential(user, credential);
       await updateEmail(user, values.newEmail);
+      
+      // Update Firestore
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, {
+        email: values.newEmail
+      });
+
       setSuccessMessage('Email updated successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
       resetForm();
@@ -124,7 +204,11 @@ const AccountPage = () => {
   });
 
   return (
+    <div>
+   
     <div className={`account-page ${animate ? 'animate-in' : ''}`}>
+         <Navbar/>
+         <Sidebar/>
       <button className="back-button" onClick={() => navigate(-1)}>
         <FiArrowLeft /> Back to Dashboard
       </button>
@@ -155,8 +239,8 @@ const AccountPage = () => {
             </div>
             {isLoading && <div className="loading-spinner"></div>}
           </div>
-          <h1>{user?.displayName || 'User'}</h1>
-          <p>{user?.email}</p>
+          <h1>{userData.fullName || 'User'}</h1>
+          <p>{userData.email}</p>
         </div>
 
         {successMessage && (
@@ -198,11 +282,11 @@ const AccountPage = () => {
                 <div className="profile-info">
                   <div className="info-item">
                     <span className="label">Name:</span>
-                    <span className="value">{user?.displayName || 'Not set'}</span>
+                    <span className="value">{userData.fullName || 'Not set'}</span>
                   </div>
                   <div className="info-item">
                     <span className="label">Email:</span>
-                    <span className="value">{user?.email}</span>
+                    <span className="value">{userData.email}</span>
                   </div>
                   <div className="info-item">
                     <span className="label">Account Created:</span>
@@ -216,7 +300,7 @@ const AccountPage = () => {
                 </div>
               ) : (
                 <Formik
-                  initialValues={{ name: user?.displayName || '' }}
+                  initialValues={{ name: userData.fullName || '' }}
                   validationSchema={profileValidationSchema}
                   onSubmit={handleProfileUpdate}
                 >
@@ -379,6 +463,7 @@ const AccountPage = () => {
           )}
         </div>
       </div>
+    </div>
     </div>
   );
 };

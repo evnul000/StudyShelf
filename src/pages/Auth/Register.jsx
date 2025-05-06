@@ -7,6 +7,7 @@ import { createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { FcGoogle } from 'react-icons/fc';
 import './Auth.scss';
+import AnimatedBackground from '../../components/AnimatedBackground/AnimatedBackground';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -82,6 +83,7 @@ const RegisterPage = () => {
 
   return (
     <div className="auth-container">
+      <AnimatedBackground/>
       <div className="auth-card">
         <h1>Create your account</h1>
         <p className="subtitle">Please enter your details</p>

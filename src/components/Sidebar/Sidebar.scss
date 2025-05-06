@@ -9,7 +9,7 @@ $transition-speed: 0.3s;
 // Update the hamburger menu styles
 .hamburger {
     position: fixed;
-    top: 50px;
+    top: 20px;
     left: 30px;
     z-index: 1001;
     background: #ff4757; // Red background
@@ -23,10 +23,19 @@ $transition-speed: 0.3s;
     padding: 8px;
     border-radius: 8px; // Curved corners
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: all 0.6s ease;
+    
     @media (max-width: 768px) {
       top: 20px;
-    left: 20px;
+      left: 20px;
+    }
+    &:active {
+      outline: none;
+      border: none;
+    }
     
+    &:focus {
+      outline: 0;
     }
     span {
       display: block;
@@ -42,7 +51,8 @@ $transition-speed: 0.3s;
     }
   
     &.open {
-      background: #ff4757; // Keep red when open
+      background: #ec0619; // Keep red when open
+      border-radius: 30px 8px 8px 8px;
       
       span:nth-child(1) {
         transform: translateY(10px) rotate(45deg);
@@ -61,8 +71,7 @@ $transition-speed: 0.3s;
 // Sidebar
 .sidebar {
   position: fixed;
-  top: 20px;
-  
+  top: 10px;
   left: -$sidebar-width;
   width: $sidebar-width;
   height: 90vh;
@@ -72,8 +81,9 @@ $transition-speed: 0.3s;
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  padding: 20px 0;
+  padding: 30px 0;
   border-radius: 40px;
+  
   &.open {
     left: 2vh;
     box-shadow: 0 2px 15px rgba(0, 0, 0, 0.642);
@@ -113,69 +123,69 @@ $transition-speed: 0.3s;
       font-size: 1.4rem;
       font-weight: 500;
     }
+    
     .sidebar-loading {
-        position: fixed;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.8);
+      z-index: 10000;
+    }
+      
+    .profile-pic-container {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 10px;
+      cursor: pointer;
+      
+      .profile-upload-label {
+        display: block;
+        width: 100%;
+        height: 100%;
+        position: relative;
+      }
+      
+      .profile-pic {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        transition: all 0.3s ease;
+        background-color: white;
+      }
+      
+      .profile-overlay {
+        position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.5);
+        color: white;
         display: flex;
         justify-content: center;
         align-items: center;
-        background: rgba(255, 255, 255, 0.8);
-        z-index: 10000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        font-size: 0.8rem;
       }
       
-      .profile-pic-container {
-        position: relative;
-        width: 80px;
-        height: 80px;
-        margin: 0 auto 10px;
-        cursor: pointer;
-      
-        .profile-upload-label {
-          display: block;
-          width: 100%;
-          height: 100%;
-          position: relative;
-        }
-      
-        .profile-pic {
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-          object-fit: cover;
-          transition: all 0.3s ease;
-          background-color: white;
-         
-        }
-      
+      &:hover {
         .profile-overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-          background: rgba(0, 0, 0, 0.5);
-          color: white;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          opacity: 0;
-          transition: opacity 0.3s ease;
-          font-size: 0.8rem;
+          opacity: 1;
         }
-      
-        &:hover {
-          .profile-overlay {
-            opacity: 1;
-          }
-          .profile-pic {
-            transform: scale(1.05);
-          }
+        .profile-pic {
+          transform: scale(1.05);
         }
       }
+    }
   }
 
   // Navigation
@@ -200,12 +210,22 @@ $transition-speed: 0.3s;
           cursor: pointer;
           display: flex;
           align-items: center;
-          transition: background-color $transition-speed ease;
+          transition: all $transition-speed ease;
           font-size: 1rem;
+          outline: none; // Remove outline
+          -webkit-tap-highlight-color: transparent; // Remove tap highlight on mobile
 
           &:hover {
             background: rgba(152, 0, 0, 0.5);
+          }
 
+          &:focus {
+            outline: none; // Remove focus outline
+            background: transparent; // Remove focus background
+          }
+
+          &:active {
+            background: rgba(152, 0, 0, 0.5); // Only show background while actively pressing
           }
 
           .icon {

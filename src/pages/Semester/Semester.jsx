@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db, storage } from '../../firebase';
 import { deleteObject, ref } from 'firebase/storage';
@@ -8,13 +8,15 @@ import {
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DndContext, closestCenter, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core';
-import { FiPlus, FiChevronDown, FiChevronRight, FiTrash2, FiBook, FiFileText, FiX, FiMove, FiEdit, FiSave } from 'react-icons/fi';
+import {  DragOverlay, useDroppable } from '@dnd-kit/core';
+import { FiMoreVertical, FiPlus, FiChevronDown, FiChevronRight, FiChevronUp, FiTrash2, FiBook, FiFileText, FiX, FiMove, FiEdit, FiSave, FiClock, FiAward, FiLayers } from 'react-icons/fi';
 import { FaGraduationCap } from 'react-icons/fa';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import UploadPage from '../UploadPage/UploadPage';
+import Navbar from '../../components/NavBar';
+import SemesterPopup from './SemesterPopup/SemesterPopup';
 import './Semester.scss';
-
+import AnimatedBackgroundSemester from '../../components/AnimatedBackground/AnimatedBackgroundSemester';
 
 const SemesterPage = () => {
   const [user, setUser] = useState(null);
@@ -31,12 +33,14 @@ const SemesterPage = () => {
   });
   const [activeDragItem, setActiveDragItem] = useState(null);
   const navigate = useNavigate();
-
+  const [animate, setAnimate] = useState(false);
+ 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         fetchSemesters(currentUser.uid);
+        setAnimate(true);
       } else {
         navigate('/login');
       }
@@ -103,14 +107,108 @@ const SemesterPage = () => {
     }
   };
 
-  const openUploadPopup = (semesterId, classId, type) => {
+  
+
+// Add this state to SemesterPage component
+const [semesterPopup, setSemesterPopup] = useState({
+  open: false,
+  type: null,
+  semesterId: null,
+  classId: null
+});
+
+// Add these handler functions to SemesterPage component
+const handleAddStudySet = (studySet) => {
+  const { semesterId, classId } = semesterPopup;
+  
+  // Optimistic UI update
+  const updatedSemesters = semesters.map(s => {
+    if (s.id === semesterId) {
+      return {
+        ...s,
+        classes: s.classes.map(c => {
+          if (c.id === classId) {
+            // Ensure sections exists as an object
+            const sections = c.sections || {};
+            // Add the study set to sections.studySets
+            const studySets = sections.studySets || [];
+            return {
+              ...c,
+              sections: {
+                ...sections,
+                studySets: [...studySets, studySet]
+              }
+            };
+          }
+          return c;
+        })
+      };
+    }
+    return s;
+  });
+  setSemesters(updatedSemesters);
+
+  // Firestore update
+  const semesterRef = doc(db, 'semesters', semesterId);
+  updateDoc(semesterRef, {
+    classes: updatedSemesters.find(s => s.id === semesterId).classes
+  });
+};
+
+const handleAddExam = (exam) => {
+  const { semesterId, classId } = semesterPopup;
+  
+  // Optimistic UI update
+  const updatedSemesters = semesters.map(s => {
+    if (s.id === semesterId) {
+      return {
+        ...s,
+        classes: s.classes.map(c => {
+          if (c.id === classId) {
+            const sections = c.sections || {};
+            const exams = sections.exams || [];
+            return {
+              ...c,
+              sections: {
+                ...sections,
+                exams: [...exams, exam]
+              }
+            };
+          }
+          return c;
+        })
+      };
+    }
+    return s;
+  });
+  
+  setSemesters(updatedSemesters);
+
+  // Firestore update
+  const semesterRef = doc(db, 'semesters', semesterId);
+  updateDoc(semesterRef, {
+    classes: updatedSemesters.find(s => s.id === semesterId).classes
+  });
+}
+
+ // Update the openUploadPopup function to handle study sets and exams differently
+const openUploadPopup = (semesterId, classId, type) => {
+  if (type === 'studySets' || type === 'exams') {
+    setSemesterPopup({
+      open: true,
+      type,
+      semesterId,
+      classId
+    });
+  } else {
     setUploadPopup({
       open: true,
       semesterId,
       classId,
       type
     });
-  };
+  }
+};
 
   const closeUploadPopup = () => {
     setUploadPopup({
@@ -123,6 +221,42 @@ const SemesterPage = () => {
   
   const handleUploadComplete = async (fileData) => {
     try {
+      // Optimistic UI update
+      const updatedSemesters = semesters.map(s => {
+        if (s.id === uploadPopup.semesterId) {
+          return {
+            ...s,
+            classes: s.classes.map(c => {
+              if (c.id === uploadPopup.classId) {
+                const sections = c.sections || {};
+                const currentContent = sections[uploadPopup.type] || [];
+                return {
+                  ...c,
+                  sections: {
+                    ...sections,
+                    [uploadPopup.type]: [
+                      ...currentContent,
+                      {
+                        id: fileData.id,
+                        name: fileData.name,
+                        url: fileData.url,
+                        size: fileData.size,
+                        type: fileData.type,
+                        addedAt: new Date()
+                      }
+                    ]
+                  }
+                };
+              }
+              return c;
+            })
+          };
+        }
+        return s;
+      });
+      setSemesters(updatedSemesters);
+  
+      // Firestore update
       const semesterRef = doc(db, 'semesters', uploadPopup.semesterId);
       const semesterDoc = await getDoc(semesterRef);
       
@@ -131,36 +265,42 @@ const SemesterPage = () => {
       }
       
       const semesterData = semesterDoc.data();
-      
       const updatedClasses = semesterData.classes.map(cls => {
         if (cls.id === uploadPopup.classId) {
-          const currentContent = cls[uploadPopup.type] || [];
+          const sections = cls.sections || {};
+          const currentContent = sections[uploadPopup.type] || [];
           return {
             ...cls,
-            [uploadPopup.type]: [
-              ...currentContent,
-              {
-                id: fileData.id,
-                name: fileData.name,
-                url: fileData.url,
-                size: fileData.size,
-                type: fileData.type,
-                addedAt: new Date()
-              }
-            ]
+            sections: {
+              ...sections,
+              [uploadPopup.type]: [
+                ...currentContent,
+                {
+                  id: fileData.id,
+                  name: fileData.name,
+                  url: fileData.url,
+                  size: fileData.size,
+                  type: fileData.type,
+                  addedAt: new Date()
+                }
+              ]
+            }
           };
         }
         return cls;
       });
-
+  
       await updateDoc(semesterRef, {
         classes: updatedClasses
       });
-
+  
       closeUploadPopup();
+      // Refresh the semester data to update the UI
       fetchSemesters(user.uid);
     } catch (error) {
       console.error("Error updating semester with new content:", error);
+      // Revert optimistic update if failed
+      setSemesters(semesters);
     }
   };
 
@@ -249,6 +389,7 @@ const SemesterPage = () => {
       throw error;
     }
   };
+
   const movePDFToDifferentClass = async (activeData, overData) => {
     const { semesterId, classId: sourceClassId, pdf, currentSection } = activeData;
     const { classId: targetClassId, sectionType: targetSection = currentSection } = overData;
@@ -292,128 +433,161 @@ const SemesterPage = () => {
       throw error;
     }
   };
+
   return (
-    <DndContext
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
+   
       <div className="semester-page">
+        <Navbar/>
         <Sidebar />
-        <div className="header">
-          <h1><FaGraduationCap /> My Semesters</h1>
-          <button 
-            className="add-semester-btn"
-            onClick={() => setNewSemesterOpen(!newSemesterOpen)}
-          >
-            <FiPlus /> Add Semester
-          </button>
-        </div>
-
-        <AnimatePresence>
-          {newSemesterOpen && (
-            <motion.div 
-              className="new-semester-form"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
+       
+        <AnimatedBackgroundSemester/>
+        <div className={`semester-animation ${animate ? 'animate-in' : ''}`}>
+          <div className="header">
+            <button 
+              className="add-semester-btn"
+              onClick={() => setNewSemesterOpen(!newSemesterOpen)}
             >
-              <input
-                type="text"
-                placeholder="Semester name (e.g. Fall 2025)"
-                value={newSemesterName}
-                onChange={(e) => setNewSemesterName(e.target.value)}
-              />
-              <div className="color-picker">
-                <label>Color:</label>
-                <input
-                  type="color"
-                  value={newSemesterColor}
-                  onChange={(e) => setNewSemesterColor(e.target.value)}
-                />
-              </div>
-              <div className="form-actions">
-                <button onClick={addSemester}>Save</button>
-                <button onClick={() => setNewSemesterOpen(false)}>Cancel</button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {uploadPopup.open && (
-            <motion.div 
-              className="upload-modal-overlay"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={closeUploadPopup}
-            >
-              <motion.div 
-                className="upload-modal-content"
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button className="close-button" onClick={closeUploadPopup}>
-                  <FiX />
-                </button>
-                <UploadPage 
-                  type={uploadPopup.type}
-                  onUploadComplete={handleUploadComplete}
-                  onCancel={closeUploadPopup}
-                />
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {loading ? (
-          <div className="loading">Loading...</div>
-        ) : semesters.length === 0 ? (
-          <div className="empty-state">
-            <FiBook size={64} />
-            <p>No semesters yet. Add your first semester to get started!</p>
+              <FiPlus /> Add Semester
+            </button>
           </div>
-        ) : (
-          <div className="semester-list">
-            {semesters.map(semester => (
-              <SemesterItem
+        <AnimatePresence>
+              {semesterPopup.open && (
+                <SemesterPopup
+                  type={semesterPopup.type}
+                  onClose={() => setSemesterPopup({ open: false, type: null })}
+                  onAddStudySet={handleAddStudySet}
+                  onAddExam={handleAddExam}
+                  semesterId={semesterPopup.semesterId}
+                  classId={semesterPopup.classId}
+                />
+              )}
+            </AnimatePresence>
+          <AnimatePresence>
+            {newSemesterOpen && (
+              <motion.div 
+                className="new-semester-form"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <input
+                  type="text"
+                  placeholder="Semester name (e.g. Fall 2025)"
+                  value={newSemesterName}
+                  onChange={(e) => setNewSemesterName(e.target.value)}
+                />
+                <div className="color-picker">
+                  <label>Color:</label>
+                  <input
+                    type="color"
+                    value={newSemesterColor}
+                    onChange={(e) => setNewSemesterColor(e.target.value)}
+                  />
+                </div>
+                <div className="form-actions">
+                  <button onClick={addSemester}>Save</button>
+                  <button onClick={() => setNewSemesterOpen(false)}>Cancel</button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {uploadPopup.open && (
+              <motion.div 
+                className="upload-modal-overlay"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={closeUploadPopup}
+              >
+                <motion.div 
+                  className="upload-modal-content"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button className="close-button" onClick={closeUploadPopup}>
+                    <FiX />
+                  </button>
+                  <UploadPage 
+                      type={uploadPopup.type}
+                      onUploadComplete={handleUploadComplete}
+                      onCancel={closeUploadPopup}
+                      semesterId={uploadPopup.semesterId}
+                      classId={uploadPopup.classId}
+                    />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {loading ? (
+            <div className="loading">Loading...</div>
+          ) : semesters.length === 0 ? (
+            <div className="empty-state">
+              <FiBook size={64} />
+              <p>No semesters yet. Add your first semester to get started!</p>
+            </div>
+          ) : (
+            <div className="semester-list">
+              {semesters.map(semester => (
+                <SemesterItem
                 key={semester.id}
                 semester={semester}
                 onToggle={toggleSemester}
                 onDelete={deleteSemester}
                 onAddContent={openUploadPopup}
                 userId={user?.uid}
+                semesters={semesters}
+                setSemesters={setSemesters}
+               
               />
-            ))}
-          </div>
-        )}
-
-        <DragOverlay>
-          {activeDragItem ? (
-            <div className="drag-preview">
-              {activeDragItem.type === 'pdf' ? (
-                <div className="content-item">
-                  <h6>{activeDragItem.pdf.name}</h6>
-                  <FiMove className="drag-handle" />
-                </div>
-              ) : activeDragItem.type === 'class' ? (
-                <div className="class-item">
-                  <h4>{activeDragItem.cls.name}</h4>
-                </div>
-              ) : null}
+              ))}
             </div>
-          ) : null}
-        </DragOverlay>
+          )}
+
+        </div>
       </div>
-    </DndContext>
+  
   );
 };
 
-const SemesterItem = ({ semester, onToggle, onDelete, onAddContent, userId }) => {
+const ContextMenu = ({ currentSection, onSelect, onClose }) => {
+  const allowedSections = ['textbook', 'notes', 'homework'];
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        onClose();
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]); // Add onClose to dependencies
+
+  return (
+    <div className="context-menu" ref={menuRef}>
+      {allowedSections.map(section => 
+        section !== currentSection && (
+          <button 
+            key={section}
+            onClick={() => onSelect(section)} // Now properly calls onSelect
+          >
+            {section.charAt(0).toUpperCase() + section.slice(1)}
+          </button>
+        )
+      )}
+    </div>
+  );
+};
+
+
+const SemesterItem = ({ semester, onToggle, onDelete, onAddContent, userId, semesters, setSemesters, fetchSemesters }) => {
   const [newClassName, setNewClassName] = useState('');
   const [newClassColor, setNewClassColor] = useState('#10b981');
   const [addingClass, setAddingClass] = useState(false);
@@ -450,77 +624,97 @@ const SemesterItem = ({ semester, onToggle, onDelete, onAddContent, userId }) =>
       const semesterData = semesterDoc.data();
       let itemToDelete = null;
 
+      // Updated to properly access sections
       const updatedClasses = semesterData.classes.map(cls => {
-        if (cls.id === classId && cls[contentType]) {
-          const contentItem = cls[contentType].find(item => item.id === contentId);
-          if (contentItem) {
-            itemToDelete = contentItem;
-            return {
-              ...cls,
-              [contentType]: cls[contentType].filter(item => item.id !== contentId)
-            };
+        if (cls.id === classId && cls.sections) {
+          if (cls.sections[contentType]) {
+            const contentItem = cls.sections[contentType].find(item => item.id === contentId);
+            if (contentItem) {
+              itemToDelete = contentItem;
+              // Create a new object to avoid reference issues
+              const updatedSections = { ...cls.sections };
+              updatedSections[contentType] = cls.sections[contentType].filter(item => item.id !== contentId);
+              return {
+                ...cls,
+                sections: updatedSections
+              };
+            }
           }
         }
         return cls;
       });
 
+      // Update Firestore
       await updateDoc(semesterRef, {
         classes: updatedClasses
       });
 
+      // Delete file from Storage if it exists
       if (itemToDelete?.url) {
-        try {
-          const url = itemToDelete.url;
-          let filePath = '';
-          
-          if (url.includes('firebasestorage.googleapis.com')) {
-            const matches = url.match(/\/o\/([^?]+)/);
-            if (matches) {
-              filePath = decodeURIComponent(matches[1]);
-              filePath = filePath.replace(/%2F/g, '/');
-            }
-          } else if (url.startsWith('gs://')) {
-            filePath = url.replace(/gs:\/\/[^/]+\//, '');
+        const url = itemToDelete.url;
+        let filePath = '';
+        
+        if (url.includes('firebasestorage.googleapis.com')) {
+          const matches = url.match(/\/o\/([^?]+)/);
+          if (matches) {
+            filePath = decodeURIComponent(matches[1]);
+            filePath = filePath.replace(/%2F/g, '/');
           }
+        } else if (url.startsWith('gs://')) {
+          filePath = url.replace(/gs:\/\/[^/]+\//, '');
+        }
 
-          if (filePath) {
-            const fileRef = ref(storage, filePath);
-            await deleteObject(fileRef);
-          }
-        } catch (storageError) {
-          console.error("Error deleting from Storage:", storageError);
+        if (filePath) {
+          const fileRef = ref(storage, filePath);
+          await deleteObject(fileRef);
         }
       }
 
+      // Refresh the UI
       onToggle(semesterId);
+
     } catch (error) {
-      console.error("Error in deletion process:", error);
+      console.error("Error deleting content:", error);
       throw error;
     }
   };
 
   const addClass = async () => {
     if (!newClassName.trim()) return;
-
+  
     try {
-      const updatedClasses = [...semester.classes, {
+      const newClass = {
         id: Date.now().toString(),
         name: newClassName,
         color: newClassColor,
-        textbook: [],
-        notes: []
-      }];
-
-      await updateDoc(doc(db, 'semesters', semester.id), {
-        classes: updatedClasses
+        sections: {}
+      };
+  
+      // Optimistic UI update
+      const updatedSemesters = semesters.map(s => {
+        if (s.id === semester.id) {
+          return {
+            ...s,
+            classes: [...s.classes, newClass]
+          };
+        }
+        return s;
       });
-
+      setSemesters(updatedSemesters);
+  
+      // Firestore update
+      await updateDoc(doc(db, 'semesters', semester.id), {
+        classes: [...semester.classes, newClass]
+      });
+  
       setNewClassName('');
       setNewClassColor('#10b981');
       setAddingClass(false);
       onToggle(semester.id);
     } catch (error) {
       console.error("Error adding class: ", error);
+      // Revert optimistic update if failed
+      setSemesters(semesters);
     }
   };
 
@@ -539,17 +733,18 @@ const SemesterItem = ({ semester, onToggle, onDelete, onAddContent, userId }) =>
   };
 
   return (
-    <div
-      ref={setNodeRef}
+    <div 
       className="semester-item"
       style={{ 
-        borderLeft: `8px solid ${semester.color}`,
+        borderLeft: `28px solid ${semester.color}`,
         background: `${semester.color}10`
       }}
+      whileHover={{ scale: 1.02 }}
+      transition={{ type: "spring", stiffness: 300 }}
     >
       <div className="semester-header" onClick={() => !editingSemester && onToggle(semester.id)}>
         <div className="semester-title">
-          {semester.isOpen ? <FiChevronDown /> : <FiChevronRight />}
+          {semester.isOpen ? <FiChevronDown /> : <FiChevronUp />}
           {editingSemester ? (
             <input
               type="text"
@@ -604,7 +799,6 @@ const SemesterItem = ({ semester, onToggle, onDelete, onAddContent, userId }) =>
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
           >
             {addingClass && (
               <motion.div className="new-class-form"
@@ -633,26 +827,20 @@ const SemesterItem = ({ semester, onToggle, onDelete, onAddContent, userId }) =>
               </motion.div>
             )}
 
-            {semester.classes.length === 0 ? (
-              <div className="empty-classes">
-                <FiFileText size={48} />
-                <p>No classes yet. Add your first class!</p>
-              </div>
-            ) : (
-              <div className="class-list">
-                {semester.classes.map(cls => (
-                  <div key={cls.id} className="class-wrapper">
-                    <ClassItem 
-                      cls={cls} 
-                      semesterId={semester.id}
-                      onDelete={deleteClass}
-                      onAddContent={onAddContent}
-                      onDeleteContent={handleDeleteContent}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="class-list">
+              {semester.classes.map(cls => (
+                <ClassItem 
+                  key={cls.id}
+                  cls={cls}
+                  semesterId={semester.id}
+                  onDelete={deleteClass}
+                  onAddContent={onAddContent}
+                  onDeleteContent={handleDeleteContent}
+                  semesters={semesters}
+                  setSemesters={setSemesters}
+                />
+              ))}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -660,10 +848,12 @@ const SemesterItem = ({ semester, onToggle, onDelete, onAddContent, userId }) =>
   );
 };
 
-const ClassItem = ({ cls, semesterId, onDelete, onAddContent, onDeleteContent }) => {
+const ClassItem = ({ cls, semesterId, onDelete, onAddContent, onDeleteContent, semesters, setSemesters, onMoveContent }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [editingClass, setEditingClass] = useState(false);
   const [className, setClassName] = useState(cls.name);
+  const [showAddSectionDropdown, setShowAddSectionDropdown] = useState(false);
+  const dropdownRef = useRef(null);
   const { setNodeRef } = useDroppable({
     id: `class-${cls.id}`,
     data: {
@@ -672,7 +862,41 @@ const ClassItem = ({ cls, semesterId, onDelete, onAddContent, onDeleteContent })
       semesterId: semesterId
     }
   });
+  const handleMoveContent = async (itemId, oldSection, newSection, semesterId, classId) => {
+    try {
+      const updatedSemesters = semesters.map(semester => {
+        if (semester.id === semesterId) {
+          return {
+            ...semester,
+            classes: semester.classes.map(cls => {
+              if (cls.id === classId) {
+                const itemToMove = cls.sections[oldSection].find(item => item.id === itemId);
+                return {
+                  ...cls,
+                  sections: {
+                    ...cls.sections,
+                    [oldSection]: cls.sections[oldSection].filter(i => i.id !== itemId),
+                    [newSection]: [...(cls.sections[newSection] || []), itemToMove]
+                  }
+                };
+              }
+              return cls;
+            })
+          };
+        }
+        return semester;
+      });
 
+      setSemesters(updatedSemesters);
+
+      const semesterRef = doc(db, 'semesters', semesterId);
+      await updateDoc(semesterRef, {
+        classes: updatedSemesters.find(s => s.id === semesterId).classes
+      });
+    } catch (error) {
+      console.error("Error moving content:", error);
+    }
+  };
   const handleEditClass = async () => {
     try {
       const semesterRef = doc(db, 'semesters', semesterId);
@@ -695,14 +919,171 @@ const ClassItem = ({ cls, semesterId, onDelete, onAddContent, onDeleteContent })
       console.error("Error updating class name:", error);
     }
   };
+ // Close dropdown when clicking outside
+ useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      setShowAddSectionDropdown(false);
+    }
+  };
+
+  if (showAddSectionDropdown) {
+    document.addEventListener('mousedown', handleClickOutside);
+  } else {
+    document.removeEventListener('mousedown', handleClickOutside);
+  }
+
+  return () => {
+    document.removeEventListener('mousedown', handleClickOutside);
+  };
+}, [showAddSectionDropdown]);
+
+const handleAddSection = (sectionType) => {
+  addSection(sectionType);
+  setShowAddSectionDropdown(false); // Close dropdown after selection
+};
+ // Get list of all possible section types
+ const possibleSections = ['textbook', 'notes', 'exams', 'homework', 'studySets'];
+
+ // Filter out sections that already exist
+ const availableSections = possibleSections.filter(type => 
+   !cls.sections?.[type]
+ );
+const addSection = async (sectionType) => {
+  try {
+    // Optimistic UI update
+    const updatedSemesters = semesters.map(s => {
+      if (s.id === semesterId) {
+        return {
+          ...s,
+          classes: s.classes.map(c => {
+            if (c.id === cls.id) {
+              const sections = { ...c.sections };
+              if (!sections[sectionType]) {
+                sections[sectionType] = [];
+                // Initialize exams array if it doesn't exist
+                if (sectionType === 'exams' && !c.exams) {
+                  return {
+                    ...c,
+                    exams: [],
+                    sections
+                  };
+                }
+              }
+              return { ...c, sections };
+            }
+            return c;
+          })
+        };
+      }
+      return s;
+    });
+    setSemesters(updatedSemesters);
+
+    // Firestore update
+    const semesterRef = doc(db, 'semesters', semesterId);
+    const semesterDoc = await getDoc(semesterRef);
+    
+    if (!semesterDoc.exists()) {
+      throw new Error("Semester not found");
+    }
+
+    const semesterData = semesterDoc.data();
+    const updatedClasses = semesterData.classes.map(c => {
+      if (c.id === cls.id) {
+        const sections = { ...c.sections || {} };
+        if (!sections[sectionType]) {
+          sections[sectionType] = [];
+          // Initialize exams array if it doesn't exist
+          if (sectionType === 'exams' && !c.exams) {
+            return {
+              ...c,
+              exams: [],
+              sections
+            };
+          }
+        }
+        return { ...c, sections };
+      }
+      return c;
+    });
+
+    await updateDoc(semesterRef, {
+      classes: updatedClasses
+    });
+
+    setShowAddSectionDropdown(false);
+    if (!isOpen) setIsOpen(true);
+  } catch (error) {
+    console.error("Error adding section:", error);
+    // Revert optimistic update if failed
+    setSemesters(semesters);
+  }
+};
+
+  const deleteSection = async (sectionType) => {
+    if (window.confirm(`Are you sure you want to delete the ${sectionType} section and all its content?`)) {
+      try {
+        const semesterRef = doc(db, 'semesters', semesterId);
+        const semesterDoc = await getDoc(semesterRef);
+        
+        if (!semesterDoc.exists()) {
+          throw new Error("Semester not found");
+        }
+
+        const semesterData = semesterDoc.data();
+        const updatedClasses = semesterData.classes.map(c => {
+          if (c.id === cls.id) {
+            const sections = { ...c.sections };
+            delete sections[sectionType];
+            return {
+              ...c,
+              sections: sections
+            };
+          }
+          return c;
+        });
+
+        await updateDoc(semesterRef, {
+          classes: updatedClasses
+        });
+      } catch (error) {
+        console.error("Error deleting section:", error);
+      }
+    }
+  };
+
+  // Helper functions
+const getSectionIcon = (type) => {
+  switch (type) {
+    case 'textbook': return <FiBook />;
+    case 'notes': return <FiFileText />;
+    case 'exams': return <FiAward />;
+    case 'homework': return <FiClock />;
+    case 'studySets': return <FiLayers />;
+    default: return <FiFileText />;
+  }
+};
+
+const getSectionTitle = (type) => {
+  switch (type) {
+    case 'textbook': return 'Textbook';
+    case 'notes': return 'Notes';
+    case 'exams': return 'Exams';
+    case 'homework': return 'Homework';
+    case 'studySets': return 'Study Sets';
+    default: return type;
+  }
+};
 
   return (
     <div
       ref={setNodeRef}
       className="class-item"
-      style={{ borderLeft: `8px solid ${cls.color}` }}
+      style={{ borderLeft: `28px solid ${cls.color}` }}
     >
       <div className="class-header" onClick={() => !editingClass && setIsOpen(!isOpen)}>
+        
         <div className="class-title">
           {isOpen ? <FiChevronDown /> : <FiChevronRight />}
           {editingClass ? (
@@ -719,6 +1100,42 @@ const ClassItem = ({ cls, semesterId, onDelete, onAddContent, onDeleteContent })
           )}
         </div>
         <div className="class-actions">
+        {availableSections.length > 0 && (
+            <div className="add-section-container" ref={dropdownRef}>
+              <button 
+                className="add-section-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowAddSectionDropdown(!showAddSectionDropdown);
+                }}
+              >
+                <FiPlus />
+                
+          </button>
+
+          <AnimatePresence>
+            {showAddSectionDropdown && (
+              <motion.div 
+                className="section-type-dropdown"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                {availableSections.map(sectionType => (
+                  <button 
+                    key={sectionType}
+                    onClick={() => handleAddSection(sectionType)}
+                  >
+                    {getSectionIcon(sectionType)}
+                    {getSectionTitle(sectionType)}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        )}
           <button 
             className="edit-btn"
             onClick={(e) => {
@@ -753,25 +1170,30 @@ const ClassItem = ({ cls, semesterId, onDelete, onAddContent, onDeleteContent })
             transition={{ duration: 0.3 }}
           >
             <div className="content-sections">
-              <ContentSection 
-                type="textbook" 
-                items={cls.textbook || []}
-                color={cls.color}
-                semesterId={semesterId}
-                classId={cls.id}
-                onAddContent={() => onAddContent(semesterId, cls.id, 'textbook')}
-                onDeleteContent={(contentId) => onDeleteContent(semesterId, cls.id, 'textbook', contentId)}
-              />
-              <ContentSection 
-                type="notes" 
-                items={cls.notes || []}
-                color={cls.color}
-                semesterId={semesterId}
-                classId={cls.id}
-                onAddContent={() => onAddContent(semesterId, cls.id, 'notes')}
-                onDeleteContent={(contentId) => onDeleteContent(semesterId, cls.id, 'notes', contentId)}
-              />
+              {cls.sections && Object.keys(cls.sections).length > 0 ? (
+                Object.entries(cls.sections).map(([sectionType, items]) => (
+                  <ContentSection 
+                    key={sectionType}
+                    type={sectionType} 
+                    items={items || []}
+                    color={cls.color}
+                    semesterId={semesterId}
+                    classId={cls.id}
+                    onAddContent={() => onAddContent(semesterId, cls.id, sectionType)}
+                    onDeleteContent={(contentId) => onDeleteContent(semesterId, cls.id, sectionType, contentId)}
+                    onDeleteSection={() => deleteSection(sectionType)}
+                    onMoveContent={handleMoveContent}
+
+                  />
+                ))
+              ) : (
+                <div className="empty-sections">
+                  <p>No sections yet. Add your first section!</p>
+                </div>
+              )}
             </div>
+
+            
           </motion.div>
         )}
       </AnimatePresence>
@@ -779,7 +1201,17 @@ const ClassItem = ({ cls, semesterId, onDelete, onAddContent, onDeleteContent })
   );
 };
 
-const ContentSection = ({ type, items, color, semesterId, classId, onAddContent, onDeleteContent }) => {
+const ContentSection = ({ type, items, color, semesterId, classId, onAddContent, onDeleteContent, onDeleteSection, onMoveContent }) => {
+
+  const [showMenuForItem, setShowMenuForItem] = useState(null);
+
+  const handleMove = async (itemId, newSection) => {
+    await onMoveContent(itemId, type, newSection, semesterId, classId);
+    setShowMenuForItem(null);
+  };
+
+
+
   const { setNodeRef, isOver } = useDroppable({
     id: `section-${classId}-${type}`,
     data: {
@@ -789,6 +1221,36 @@ const ContentSection = ({ type, items, color, semesterId, classId, onAddContent,
       semesterId: semesterId
     }
   });
+    // Add this new handler
+    const handleStudySetClick = (studySet) => {
+      navigate(`/studycards/${studySet.id}`);
+    };
+
+    const handleExamClick = (exam) => {
+      navigate(`/exam/${exam.id}`);
+    };
+
+  const getSectionIcon = () => {
+    switch (type) {
+      case 'textbook': return <FiBook />;
+      case 'notes': return <FiFileText />;
+      case 'exams': return <FiAward />;
+      case 'homework': return <FiClock />;
+      case 'studySets': return <FiLayers />;
+      default: return <FiFileText />;
+    }
+  };
+
+  const getSectionTitle = () => {
+    switch (type) {
+      case 'textbook': return 'Textbooks';
+      case 'notes': return 'Notes';
+      case 'exams': return 'Exams';
+      case 'homework': return 'Homework';
+      case 'studySets': return 'Study Sets';
+      default: return type;
+    }
+  };
 
   const formatFirebaseDate = (date) => {
     if (date instanceof Date) {
@@ -811,7 +1273,28 @@ const ContentSection = ({ type, items, color, semesterId, classId, onAddContent,
   const navigate = useNavigate();
 
   const handleView = (item) => {
-    navigate('/view', { state: { file: item.url } });
+    // Check if it's a DOCX file
+    if (item.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+        item.name.endsWith('.docx')) {
+          navigate('/document-editor', { 
+            state: { 
+              documentUrl: item.url,
+              documentName: item.name,
+              documentId: item.id,
+              semesterId: semesterId, // Make sure to pass semesterId
+              classId: classId,       // Make sure to pass classId
+              sectionPath: 'notes'   // Or whichever section it's in
+            } 
+          });
+    } else {
+      // Handle other file types (PDFs) as before
+      navigate('/view', { 
+        state: { 
+          file: item.url,
+          fileName: item.name 
+        } 
+      });
+    }
   };
 
   const handleEditContentName = async (itemId, newName) => {
@@ -826,10 +1309,11 @@ const ContentSection = ({ type, items, color, semesterId, classId, onAddContent,
       const semesterData = semesterDoc.data();
       const updatedClasses = semesterData.classes.map(c => {
         if (c.id === classId) {
-          const updatedContent = c[type].map(content => 
+          const updatedContent = c.sections[type].map(content => 
             content.id === itemId ? { ...content, name: newName } : content
           );
-          return { ...c, [type]: updatedContent };
+          const sections = { ...c.sections, [type]: updatedContent };
+          return { ...c, sections };
         }
         return c;
       });
@@ -844,56 +1328,106 @@ const ContentSection = ({ type, items, color, semesterId, classId, onAddContent,
 
   return (
     <div 
-      className={`content-section ${type} ${isOver ? 'drag-over' : ''}`} 
+      className={`content-section ${type}` } 
       ref={setNodeRef}
     >
       <div className="section-header">
         <h5>
-          {type === 'textbook' ? <FiBook /> : <FiFileText />}
-          {type === 'textbook' ? 'Textbooks' : 'Notes'}
+          {getSectionIcon()}
+          {getSectionTitle()}
           <span>({items?.length || 0})</span>
         </h5>
-        <button 
-          className="add-content-btn"
-          onClick={onAddContent}
-        >
-          <FiPlus /> Add
-        </button>
+        <div className="section-actions">
+          <button 
+            className="add-content-btn"
+            onClick={onAddContent}
+          >
+            <FiPlus /> Add
+          </button>
+          <button 
+            className="delete-section-btn"
+            onClick={onDeleteSection}
+          >
+            <FiTrash2 />
+          </button>
+        </div>
       </div>
       
       {!items || items.length === 0 ? (
         <div className="empty-content">
-          <p>No {type === 'textbook' ? 'textbooks' : 'notes'} yet</p>
+          <p>No {getSectionTitle().toLowerCase()} yet</p>
         </div>
       ) : (
         <div className="content-list">
-          {items.map(item => (
-            <DraggableItem 
-              key={item.id} 
-              item={item} 
-              type={type}
-              semesterId={semesterId}
-              classId={classId}
-            >
-              {({ dragHandleProps }) => (
-                <EditableContentItem
-                  item={item}
-                  onSave={handleEditContentName}
-                  onDelete={onDeleteContent}
-                  onView={handleView}
-                  addedDate={formatFirebaseDate(item.addedAt)}
-                  dragHandleProps={dragHandleProps}
-                />
-              )}
-            </DraggableItem>
-          ))}
+          {items.map(item => {
+            if (type === 'studySets') {
+              return (
+                <div 
+                  key={item.id} 
+                  className="content-item study-set-item"
+                  onClick={() => handleStudySetClick(item)}
+                >
+                  <h3>{item.name}</h3>
+                  <p>{item.cards?.length || 0} cards</p>
+                  <div className="study-set-color" style={{ backgroundColor: item.color }} />
+                </div>
+              );
+            } else if (type === 'exams') {
+              return (
+                <div 
+                  key={item.id} 
+                  className="content-item exam-item"
+                  onClick={() => navigate(`/exam/${item.id}`)}
+                >
+                  <div className="exam-item-header">
+                    <h3>{item.title}</h3>
+                    {item.timerEnabled && (
+                      <div className="exam-timer">
+                        <FiClock /> {item.timerMinutes} min
+                      </div>
+                    )}
+                  </div>
+                  <p>{item.questions?.length || 0} questions</p>
+                  <button 
+                    className="delete-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteContent(item.id);
+                    }}
+                  >
+                    <FiTrash2 size={14} />
+                  </button>
+                </div>
+              );
+            } else {
+              return (
+               
+                
+                    <EditableContentItem
+                        key={item.id}
+                        item={item}
+                        onSave={handleEditContentName}
+                        onDelete={onDeleteContent}
+                        onView={handleView}
+                        addedDate={formatFirebaseDate(item.addedAt)}
+                        onMoveContent={onMoveContent}
+                        semesterId={semesterId}
+                        classId={classId}
+                        type={type}
+                    
+                    />
+                    
+                
+              );
+            }
+          })}
         </div>
       )}
     </div>
   );
 };
 
-const EditableContentItem = ({ item, onSave, onDelete, onView, addedDate, dragHandleProps }) => {
+const EditableContentItem = ({ type, item, onSave, onDelete, onView, addedDate, classId, onMoveContent, semesterId}) => {
   const [editing, setEditing] = useState(false);
   const [contentName, setContentName] = useState(item.name);
 
@@ -901,6 +1435,17 @@ const EditableContentItem = ({ item, onSave, onDelete, onView, addedDate, dragHa
     onSave(item.id, contentName);
     setEditing(false);
   };
+  const [showMenuForItem, setShowMenuForItem] = useState(null);
+  // Properly handle move with all required parameters
+  const handleMove = async (itemId, newSection) => {
+    try {
+      await onMoveContent(itemId, type, newSection, semesterId, classId);
+      setShowMenuForItem(null);
+    } catch (error) {
+      console.error("Error moving content:", error);
+    }
+  };
+
 
   return (
     <div className="content-item">
@@ -916,15 +1461,24 @@ const EditableContentItem = ({ item, onSave, onDelete, onView, addedDate, dragHa
           />
         ) : (
           <h6 onClick={() => setEditing(true)}>{item.name}</h6>
+          
         )}
         <p>Added: {addedDate}</p>
+        
+        <div className="item-actions">
         <button 
-          className="view-button"
-          onClick={onView}
+          className = "view-button"
+          onClick={() => onView({
+            url: item.url,
+            name: item.name,
+            id: item.id,
+            type: item.type
+          })}
         >
           View
         </button>
-      </div>
+
+      
       <button 
         className="edit-btn"
         onClick={() => editing ? handleSave() : setEditing(true)}
@@ -937,45 +1491,29 @@ const EditableContentItem = ({ item, onSave, onDelete, onView, addedDate, dragHa
       >
         <FiTrash2 size={14} />
       </button>
-      <div {...dragHandleProps}>
-        <FiMove className="drag-handle" />
-      </div>
-    </div>
+      
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMenuForItem(item.id === showMenuForItem ? null : item.id);
+              }}
+            >
+              <FiMoreVertical />
+            </button>
+            
+            {showMenuForItem === item.id && (
+              <ContextMenu
+                currentSection={type}
+                onSelect={(newSection) => handleMove(item.id, newSection)}
+                onClose={() => setShowMenuForItem(null)}
+              />
+            )}
+          </div>
+        </div>
+        </div>
   );
 };
 
 
-const DraggableItem = ({ item, type, semesterId, classId, children }) => {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id: `pdf-${item.id}`,
-    data: {
-      type: 'pdf',
-      pdf: item,
-      currentSection: type,
-      semesterId: semesterId,
-      classId: classId
-    }
-  });
-
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-    zIndex: 10
-  } : undefined;
-
-  return (
-    <div 
-      ref={setNodeRef}
-      style={style}
-      className="draggable-item"
-    >
-      {children({
-        dragHandleProps: {
-          ...attributes,
-          ...listeners
-        }
-      })}
-    </div>
-  );
-};
 
 export default SemesterPage;

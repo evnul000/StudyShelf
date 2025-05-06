@@ -1,28 +1,61 @@
 .study-cards {
-    display: flex;
+  position:fixed;
+  height: 100vh;
+  width: 100vw;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('../../assets/studycard_bg.png') no-repeat center center fixed;
+  background-size: cover; // This ensures the image covers the entire area
+  overflow: hidden; // Prevent scrolling on the main container    
+
+
+  // This will ensure the animated background is behind everything
+  .animated-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; // Behind the content
+    
+
+  }
+
+  .study-cards-content {
+    flex: 1;
+    padding: 2rem;
+    margin-left: 5rem;
+    overflow-y: auto; // Only scroll when content overflows
     height: 100vh;
-    width: 100vw;
-    background-color: #f5f7fa;
-    overflow: hidden;
-    
-    .study-cards-content {
-      flex: 1;
-      padding: 2rem;
-      margin-left: 5rem;
-      overflow-y: auto;
-      height: 100vh;
-      
-      @media (max-width: 768px) {
-        margin-left: 0;
-        padding: 1rem;
-        margin-top: 3rem;
-      }
+    display: flex;
+    flex-direction: column;
+    background: #f5f5f5; // Grey background
+    border-radius: 12px;
+    padding: 2rem;
+    margin: 0 auto;
+    max-width: 1000px;
+    margin-top: 2vh;
+    box-shadow: 0px 5px 15px 0px rgba(0, 0, 0, 0.35);
+    z-index: 5;
+
+    @media (max-width: 768px) {
+      margin-left: 0;
+      padding: 1rem;
+      margin-top: 3rem;
     }
-    
-    .sets-container, .cards-container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
+  }
+  
+  .sets-container, .cards-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+   
+  }
     
     h1, h2 {
       color: #2d3748;
@@ -33,7 +66,7 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      background: #4f46e5;
+      background: #e36227;
       color: white;
       border: none;
       padding: 0.75rem 1.5rem;
@@ -56,7 +89,7 @@
     
     .set-form, .card-form {
       background: white;
-      padding: 1.5rem;
+      padding: 3rem;
       border-radius: 12px;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
       margin-bottom: 2rem;

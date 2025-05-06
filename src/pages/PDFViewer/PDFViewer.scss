@@ -1,103 +1,70 @@
-.pdf-viewer-container {
-  height: 100vh;
+.pdf-viewer-page {
+  display: flex;
+  flex-direction: column;
+  position:fixed;
   width: 100vw;
-  margin: 8vh 0 0 0;
-  padding: 0;
-  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: #fff;
-
-  // Main viewer area
-  .rpv-core__viewer {
+    .save-annotations-button {
+      position: absolute;
+      top: 5px;
+      right: 1750px;
+      z-index: 1;
+      
+      button {
+        background: #2e86de;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        
+        &:hover {
+          background: #1e6fbf;
+        }
+      }
+    }  
+  .pdf-viewer-container {
     flex: 1;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    overflow: hidden;
-  }
+   
+    height: calc(100vh - 8vh);
+    width: 100vw;
+    position: relative;
 
-  // Toolbar customization
-  .rpv-default-layout__toolbar {
-    background: #f3f4f6;
-    border-bottom: 1px solid #e5e7eb;
-    padding: 4px;
-
-    // Make toolbar buttons more touch-friendly
-    button {
-      min-width: 40px;
-      min-height: 40px;
-      margin: 2px;
+    #adobe-dc-view {
+      height: 100%;
+      width: 100%;
     }
-  }
-
-  // Page container
-  .rpv-core__page-layer {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    margin: 16px auto;
-  }
-
-  .no-file {
-    padding: 2rem;
-    text-align: center;
-    color: #666;
-    font-size: 1.2rem;
-  }
-
-  // Loading state
-  .loading {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    font-size: 1.2rem;
-    color: #666;
   }
 }
 
-// Responsive adjustments
 @media (max-width: 768px) {
   .pdf-viewer-container {
-    margin: 0;
+    margin-top: 0;
     height: 100vh;
-    width: 100vw;
-    position: fixed;
-    top: 0;
-    left: 0;
+  }
+
+  .save-annotations-button {
+    position: absolute;
+    top: 100px;
+    right: 20px;
+    z-index: 1000;
     
-   
-  
-
-    .rpv-default-layout__sidebar {
+    button {
+      background: #2e86de;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
       
-      
-      border-right: none;
-      border-bottom: 1px solid #e5e7eb;
-    }
-
-    
-
-    // Adjust toolbar for touch
-    .rpv-default-layout__toolbar {
-      padding: 8px 4px;
-
-      button {
-        padding: 8px;
-        margin: 2px;
+      &:hover {
+        background: #1e6fbf;
       }
-    }
-
-    // Make page fit width by default
-    .rpv-core__page-layer {
-      margin: 8px auto;
-      max-width: 100% !important;
-      transform: none !important;
-    }
-
-    // Improve touch targets
-    .rpv-core__inner-page {
-      touch-action: pan-y pinch-zoom;
     }
   }
 }

@@ -58,6 +58,39 @@
 
 /* UploadPage.scss additions */
 .upload-page-popup {
+  .creation-mode-toggle {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+  
+    button {
+      flex: 1;
+      padding: 8px 15px;
+      border: 1px solid #ddd;
+      background: #f8f9fa;
+      cursor: pointer;
+      border-radius: 4px;
+  
+      &.active {
+        background: #0d6efd;
+        color: white;
+        border-color: #0b5ed7;
+      }
+    }
+  }
+  
+  .docx-creation {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  
+    input {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+  }
   .upload-label{
     background: #3b82f6;
     color: white;

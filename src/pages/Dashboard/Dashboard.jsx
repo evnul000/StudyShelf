@@ -10,13 +10,17 @@ import { FiBook, FiFileText, FiUploadCloud, FiSearch, FiCalendar, FiCheck, FiPlu
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay } from 'date-fns';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import { FcFolder } from 'react-icons/fc';
+import Navbar from '../../components/NavBar';
 import './Dashboard.scss';
+import AnimatedBackgroundDashboard from '../../components/AnimatedBackground/AnimatedBackgroundDashboard';
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [recentUploads, setRecentUploads] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const searchResultsRef = React.useRef(null);
+  const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -31,6 +35,22 @@ const Dashboard = () => {
   const [showEventModal, setShowEventModal] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchResultsRef.current && !searchResultsRef.current.contains(event.target)) {
+        // Check if click was not on the search input or button
+        if (!event.target.closest('.search-bar')) {
+          setShowSearchResults(false);
+        }
+      }
+    };
+  
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
 // Add this useEffect hook to fetch recent study sets
 useEffect(() => {
   const fetchRecentStudySets = async (userId) => {
@@ -135,9 +155,10 @@ useEffect(() => {
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
-    }
+    setSearchResults([]);
+    setShowSearchResults(false);
+    return;
+  }
 
     try {
       const q = query(
@@ -169,6 +190,7 @@ useEffect(() => {
       });
       
       setSearchResults(results);
+      setShowSearchResults(true);
     } catch (error) {
       console.error("Error searching: ", error);
     }
@@ -396,24 +418,12 @@ useEffect(() => {
 
   return (
     <div className="dashboard">
+      <Navbar /> {/* Add this line at the top */}
       <Sidebar />
-      
+      <AnimatedBackgroundDashboard/>
       <div className="dashboard-content">
-        <header className="dashboard-header">
-          <h1>Dashboard</h1>
-          <div className="search-bar">
-            <input
-              type="text"
-              placeholder="Search your notes and textbooks..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            />
-            <button onClick={handleSearch}>
-              <FiSearch />
-            </button>
-          </div>
-        </header>
+       
+      
 
         <div className="dashboard-grid">
           {/* Recent Uploads Section */}
@@ -422,7 +432,7 @@ useEffect(() => {
               <h2>Recent Uploads</h2>
               <button 
                 className="upload-btn"
-                onClick={() => navigate('/upload')}
+                onClick={() => navigate('/semester')}
               >
                 <FiUploadCloud /> Upload
               </button>
@@ -488,7 +498,7 @@ useEffect(() => {
             <div 
               key={set.id} 
               className="studyset-item"
-              onClick={() => navigate('/studycards', { state: { studySetId: set.id } })}
+              onClick={() => navigate(`/studycards/${set.id}`, { state: { studySetId: set.id } })}
               style={{ borderLeft: `4px solid ${set.color}` }}
             >
               <div className="studyset-details">
@@ -527,46 +537,6 @@ useEffect(() => {
             {renderCalendar()}
             {renderEventModal()}
           </div>
-
-          {/* Search Results Section (only shown when searching) */}
-          {searchResults.length > 0 && (
-            <div className="search-results card">
-              <div className="card-header">
-                <h2>Search Results</h2>
-                <button onClick={() => {
-                  setSearchQuery('');
-                  setSearchResults([]);
-                }}>
-                  Clear
-                </button>
-              </div>
-              
-              <div className="results-list">
-                {searchResults.map((item) => (
-                  <div key={item.id} className="result-item">
-                    <div className="result-icon">
-                      {item.type === 'textbook' ? <FiBook /> : <FiFileText />}
-                    </div>
-                    <div className="result-details">
-                      <h3>{item.name}</h3>
-                      <p>
-                        <span className={`type-badge ${item.type}`}>
-                          {item.type === 'textbook' ? 'Textbook' : 'Notes'}
-                        </span>
-                        <span>{item.className} • {item.semesterName}</span>
-                      </p>
-                    </div>
-                    <button 
-                      className="view-btn"
-                      onClick={() => navigate('/view', { state: { file: item.url } })}
-                    >
-                      View
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     

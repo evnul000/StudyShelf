@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { auth, db } from '../../firebase';
-import { collection, doc, setDoc, getDocs, deleteDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, deleteDoc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { FiPlus, FiTrash2, FiEdit2, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import Sidebar from '../../components/Sidebar/Sidebar';
+import Navbar from '../../components/NavBar';
 import './StudyCards.scss';
+import AnimatedBackgroundStudyCards from '../../components/AnimatedBackground/AnimatedBackgroundStudyCards';
 
 const StudyCards = () => {
   const [user, setUser] = useState(null);
@@ -20,6 +22,7 @@ const StudyCards = () => {
   const [showSetForm, setShowSetForm] = useState(false);
   const [showCardForm, setShowCardForm] = useState(false);
   const navigate = useNavigate();
+  const { setId } = useParams();
 
   const colorOptions = [
     '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', 
@@ -30,13 +33,21 @@ const StudyCards = () => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        fetchStudySets(currentUser.uid);
+        if (!setId) {
+          fetchStudySets(currentUser.uid);
+        }
       } else {
         navigate('/login');
       }
     });
     return () => unsubscribe();
-  }, [navigate]);
+  }, [navigate, setId]);
+
+  useEffect(() => {
+    if (setId) {
+      fetchSpecificStudySet(setId);
+    }
+  }, [setId]);
 
   const fetchStudySets = async (userId) => {
     try {
@@ -54,6 +65,25 @@ const StudyCards = () => {
       setStudySets(sets);
     } catch (error) {
       console.error("Error fetching study sets: ", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSpecificStudySet = async (setId) => {
+    try {
+      setLoading(true);
+      const studySetRef = doc(db, 'studySets', setId);
+      const studySetDoc = await getDoc(studySetRef);
+      
+      if (studySetDoc.exists()) {
+        setCurrentSet({ id: studySetDoc.id, ...studySetDoc.data() });
+      } else {
+        setCurrentSet(null);
+      }
+    } catch (error) {
+      console.error("Error fetching study set: ", error);
+      setCurrentSet(null);
     } finally {
       setLoading(false);
     }
@@ -81,6 +111,7 @@ const StudyCards = () => {
       
       setNewSetName('');
       setShowSetForm(false);
+      navigate('/studycards');
     } catch (error) {
       console.error("Error creating study set: ", error);
     }
@@ -115,6 +146,7 @@ const StudyCards = () => {
         setStudySets(studySets.filter(set => set.id !== setId));
         if (currentSet && currentSet.id === setId) {
           setCurrentSet(null);
+          navigate('/studycards');
         }
       } catch (error) {
         console.error("Error deleting study set: ", error);
@@ -160,10 +192,11 @@ const StudyCards = () => {
 
   return (
     <div className="study-cards">
+      <Navbar/>
       <Sidebar />
-      
+      <AnimatedBackgroundStudyCards className="animated-background"/>
       <div className="study-cards-content">
-        {!currentSet ? (
+        {!setId ? (
           <div className="sets-container">
             <h1>Your Study Sets</h1>
             
@@ -218,6 +251,7 @@ const StudyCards = () => {
                       setCurrentSet(set);
                       setCurrentCardIndex(0);
                       setIsFlipped(false);
+                      navigate(`/studycards/${set.id}`);
                     }}
                   >
                     <h3>{set.name}</h3>
@@ -238,94 +272,115 @@ const StudyCards = () => {
           </div>
         ) : (
           <div className="cards-container">
-            <div className="cards-header">
-              <button 
-                className="back-btn"
-                onClick={() => setCurrentSet(null)}
-              >
-                <FiChevronLeft /> Back to Sets
-              </button>
-              
-              <h2 style={{ color: currentSet.color }}>{currentSet.name}</h2>
-              
-              <button 
-                className="add-card-btn"
-                onClick={() => setShowCardForm(true)}
-              >
-                <FiPlus /> Add Card
-              </button>
-            </div>
-            
-            {showCardForm && (
-              <div className="card-form">
-                <input
-                  type="text"
-                  placeholder="Question"
-                  value={newCard.question}
-                  onChange={(e) => setNewCard({...newCard, question: e.target.value})}
-                />
-                <input
-                  type="text"
-                  placeholder="Answer"
-                  value={newCard.answer}
-                  onChange={(e) => setNewCard({...newCard, answer: e.target.value})}
-                />
-                
-                <div className="form-actions">
-                  <button onClick={addCardToSet}>Add Card</button>
-                  <button onClick={() => {
-                    setShowCardForm(false);
-                    setNewCard({ question: '', answer: '' });
-                  }}>Cancel</button>
-                </div>
-              </div>
-            )}
-            
-            {currentSet.cards?.length === 0 ? (
+            {loading ? (
+              <div className="loading">Loading...</div>
+            ) : !currentSet ? (
               <div className="empty-state">
-                <p>No cards in this set yet. Add your first card!</p>
+                <p>Study set not found</p>
+                <button 
+                  className="back-btn"
+                  onClick={() => navigate('/studycards')}
+                >
+                  <FiChevronLeft /> Back to Sets
+                </button>
               </div>
             ) : (
-              <div className="card-viewer">
-                <div className="card-counter">
-                  Card {currentCardIndex + 1} of {currentSet.cards?.length}
-                </div>
-                
-                <div 
-                  className={`flashcard ${isFlipped ? 'flipped' : ''}`}
-                  onClick={() => setIsFlipped(!isFlipped)}
-                >
-                  <div className="flashcard-front">
-                    {currentSet.cards[currentCardIndex]?.question}
-                  </div>
-                  <div className="flashcard-back">
-                    {currentSet.cards[currentCardIndex]?.answer}
-                  </div>
-                </div>
-                
-                <div className="card-actions">
+              <>
+                <div className="cards-header">
                   <button 
-                    className="nav-btn prev-btn"
-                    onClick={() => navigateCard('prev')}
+                    className="back-btn"
+                    onClick={() => {
+                      setCurrentSet(null);
+                      navigate('/studycards');
+                    }}
                   >
-                    <FiChevronLeft /> Previous
+                    <FiChevronLeft /> Back to Sets
                   </button>
                   
-                  <button 
-                    className="delete-card-btn"
-                    onClick={() => deleteCard(currentCardIndex)}
-                  >
-                    <FiTrash2 /> Delete Card
-                  </button>
+                  <h2 style={{ color: currentSet.color }}>{currentSet.name}</h2>
                   
                   <button 
-                    className="nav-btn next-btn"
-                    onClick={() => navigateCard('next')}
+                    className="add-card-btn"
+                    onClick={() => setShowCardForm(true)}
                   >
-                    Next <FiChevronRight />
+                    <FiPlus /> Add Card
                   </button>
                 </div>
-              </div>
+                
+                {showCardForm && (
+                  <div className="card-form">
+                    <input
+                      type="text"
+                      placeholder="Question"
+                      value={newCard.question}
+                      onChange={(e) => setNewCard({...newCard, question: e.target.value})}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Answer"
+                      value={newCard.answer}
+                      onChange={(e) => setNewCard({...newCard, answer: e.target.value})}
+                    />
+                    
+                    <div className="form-actions">
+                      <button onClick={addCardToSet}>Add Card</button>
+                      <button onClick={() => {
+                        setShowCardForm(false);
+                        setNewCard({ question: '', answer: '' });
+                      }}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+                
+                {currentSet.cards?.length === 0 ? (
+                  <div className="empty-state">
+                    <p>No cards in this set yet. Add your first card!</p>
+                  </div>
+                ) : (
+                  <div className="card-viewer">
+                    <div className="card-counter">
+                      Card {currentCardIndex + 1} of {currentSet.cards?.length}
+                    </div>
+                    
+                    <div 
+                      className={`flashcard ${isFlipped ? 'flipped' : ''}`}
+                      onClick={() => setIsFlipped(!isFlipped)}
+                    >
+                      <div className="flashcard-front">
+                        {currentSet.cards[currentCardIndex]?.question}
+                      </div>
+                      <div className="flashcard-back">
+                        {currentSet.cards[currentCardIndex]?.answer}
+                      </div>
+                    </div>
+                    
+                    <div className="card-actions">
+                      <button 
+                        className="nav-btn prev-btn"
+                        onClick={() => navigateCard('prev')}
+                      >
+                        <FiChevronLeft /> Previous
+                      </button>
+                      
+
+                      <button 
+                        className="delete-card-btn"
+                        onClick={() => deleteCard(currentCardIndex)}
+                      >
+                        <FiTrash2 /> Delete Card
+                      </button>
+                      
+
+                      <button 
+                        className="nav-btn next-btn"
+                        onClick={() => navigateCard('next')}
+                      >
+                        Next <FiChevronRight />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

@@ -5,6 +5,7 @@ import * as Yup from 'yup';
 import { auth, googleProvider } from '../../firebase';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import { FcGoogle } from 'react-icons/fc';
+import AnimatedBackground from '../../components/AnimatedBackground/AnimatedBackground';
 import './Auth.scss';
 
 const LoginPage = () => {
@@ -60,6 +61,7 @@ const LoginPage = () => {
 
   return (
     <div className="auth-container">
+      <AnimatedBackground/>
       <div className="auth-card">
         <h1>Welcome back</h1>
         <p className="subtitle">Please enter your details</p>

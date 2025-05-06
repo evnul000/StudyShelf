@@ -8,7 +8,9 @@ import Dashboard from './pages/Dashboard/Dashboard';
 import UploadPage from './pages/UploadPage/UploadPage';
 import SemesterPage from './pages/Semester/Semester';
 import StudyCards from './pages/StudyCards/StudyCards';
+import ExamPage from './pages/Semester/ExamPopup/ExamPage';
 import AccountPage from './pages/AccountPage/AccountPage';
+import DocumentEditorPage from './pages/DocumentEditor/index';
 import { auth } from './firebase';
 
 const App = () => {
@@ -52,8 +54,11 @@ const App = () => {
         <Route path="/dashboard" element={<Dashboard/>} />
         <Route path="/upload" element={<UploadPage />} />
         <Route path="/semester" element={<SemesterPage/>}/>
-        <Route path="/studycards" element={<StudyCards/>}/>
+        <Route path="/studycards" element={<StudyCards />} />
+        <Route path="/studycards/:setId" element={<StudyCards />} />
         <Route path="/account" element={<AccountPage/>}/>
+        <Route path="/exam/:examId" element={<ExamPage />} />
+        <Route path="/document-editor" element={<DocumentEditorPage />} />
       </Routes>
     </>
   );
