@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import FormatButtons from './FormatButtons';
 import AlignmentButtons from './AlignmentButtons';
 import InsertMenu from './InsertMenu';
@@ -10,7 +10,8 @@ import {
   Share2, 
   Star, 
   Download, 
-  X 
+  X,
+  Save
 } from 'lucide-react';
 import '../styles/toolbar.scss';
 
@@ -26,53 +27,52 @@ const Toolbar = ({
   lastSaved
 }) => {
   const [showWordCount, setShowWordCount] = useState(false);
-  
+ 
+
+ 
+
   if (!editor) {
     return null;
   }
 
   return (
     <div className="editor-toolbar">
-      <div className="toolbar-top">
-        <div className="toolbar-left">
-          <button className="close-button" onClick={onClose}>
-            <X size={18} />
-          </button>
-          <button onClick={onSave}>Save Now</button>
+     <div className="toolbar-top">
+        <button 
+          className="toolbar-button" 
+          onClick={onSave}
+          title="Save document"
+        >
+          <Save size={20} />
           {lastSaved && (
-            <span className="last-saved">
-              Last saved: {lastSaved.toLocaleTimeString()}
+            <span className="last-saved-tooltip">
+              <Clock size={20} /> {lastSaved.toLocaleTimeString()}
             </span>
           )}
-          <div className="document-title">
-            <input
-              type="text"
-              value={docName}
-              onChange={(e) => setDocName(e.target.value)}
-              className="doc-name-input"
-              placeholder="Untitled document"
-            />
-            <button className="star-button">
-              <Star size={18} />
-            </button>
-        
-          </div>
-        </div>
-        
-        <div className="toolbar-center">
-          <DocumentOptions editor={editor} />
-        </div>
-        
-        <div className="toolbar-right">
-        
-          <button 
-            className="export-button" 
-            onClick={onExport}
-            title="Download as DOCX"
-          >
-            <Download size={18} />
-          </button>
-        </div>
+        </button>
+
+        <button 
+          className="toolbar-button" 
+          onClick={onExport}
+          title="Export document"
+        >
+          <Download size={20}/>
+        </button>
+
+        <button 
+          className="toolbar-button star-button"
+          title="Add to favorites"
+        >
+          <Star size={20} />
+        </button>
+
+        <button 
+          className="toolbar-button close-button"
+          onClick={onClose}
+          title="Close editor"
+        >
+          <X size={20} />
+        </button>
       </div>
       
       <div className="toolbar-bottom">

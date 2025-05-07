@@ -6,6 +6,7 @@ import { db } from '../../../firebase';
 import { collection, query, getDocs } from 'firebase/firestore';
 import Navbar from '../../../components/NavBar';
 import Sidebar from '../../../components/Sidebar/Sidebar';
+import AnimatedBackgroundExam from '../../../components/AnimatedBackground/AnimatedBackgroundExam';
 import './ExamPage.scss';
 
 const ExamPage = () => {
@@ -117,6 +118,7 @@ const calculateResults = () => {
     <div className='exam'>
     <Navbar/>
     <Sidebar/>
+    <AnimatedBackgroundExam className='animated-background' themeColor={exam.themeColor}/>
     <motion.div 
       className="exam-page"
       initial={{ opacity: 0 }}

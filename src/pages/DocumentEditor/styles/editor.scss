@@ -4,14 +4,14 @@
   display: flex;
   justify-content: center;
   padding: 2rem 1rem;
-  background-color: #f8f9fa;
+  background-color: #f2f0f0;
   z-index: 1;
   .document-page {
     width: 8.5in;
     min-height: 11in;
     background: white;
     padding: 1in;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.267);
     position: relative;
 
     .loading-content {

@@ -10,7 +10,17 @@
     background: white;
     box-shadow: 0 5px 10px rgba(0, 0, 0, 0.224);
   }
+ // This will ensure the animated background is behind everything
+ .animated-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1; // Behind the content
+  
 
+}
 .exam-page {
   max-width: 1200px;
   margin: 2rem auto;

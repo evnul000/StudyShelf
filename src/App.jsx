@@ -11,6 +11,7 @@ import StudyCards from './pages/StudyCards/StudyCards';
 import ExamPage from './pages/Semester/ExamPopup/ExamPage';
 import AccountPage from './pages/AccountPage/AccountPage';
 import DocumentEditorPage from './pages/DocumentEditor/index';
+import ForgotPassword from './pages/Auth/ForgotPassword';
 import { auth } from './firebase';
 
 const App = () => {
@@ -59,6 +60,7 @@ const App = () => {
         <Route path="/account" element={<AccountPage/>}/>
         <Route path="/exam/:examId" element={<ExamPage />} />
         <Route path="/document-editor" element={<DocumentEditorPage />} />
+        <Route path="forgot-password" element={<ForgotPassword/>}/>
       </Routes>
     </>
   );

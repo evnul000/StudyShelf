@@ -10,7 +10,7 @@ import { db, storage } from '../../firebase';
 import { exportToDocx } from '../../utils/exportUtils';
 import * as mammoth from 'mammoth';
 import './styles/index.scss';
-
+import Sidebar from '../../components/Sidebar/Sidebar'
 const DocumentEditor = () => {
   const location = useLocation();
   const { 
@@ -246,6 +246,7 @@ const DocumentEditor = () => {
 
   return (
     <div className={`document-editor`}>
+      <Sidebar/>
       <Toolbar 
         editor={editor}
         docName={docName}

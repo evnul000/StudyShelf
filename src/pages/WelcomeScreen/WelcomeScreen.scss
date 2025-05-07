@@ -1,141 +1,229 @@
-.welcome-container {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  background: url('../../assets/welcome.gif') no-repeat center center;
-  background-size: cover;
+$scrollbar-width: 8px;
+$scrollbar-margin: 20px;
 
-  .background-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.4); // Grey tint (adjust opacity as needed)
-    z-index: 0;
+/* Custom Scrollbar (Works in modern browsers) */
+::-webkit-scrollbar {
+  width: $scrollbar-width + $scrollbar-margin;
+  background: transparent;
+ overflow: overlay;
+  &-track {
+    background: transparent;
+    margin-right: $scrollbar-margin;
   }
 
-  .welcome-screen {
-    // Full viewport centering
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 90%;
-    max-width: 600px;
-    padding: 3rem 2rem;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 24px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    animation: fadeInUp 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-    z-index: 1; // Ensure it's above the overlay
+  &-thumb {
+    background: rgba(99, 102, 241, 0.4);
+    border-radius: 4px;
+    border: ($scrollbar-margin / 2) solid transparent;
+    background-clip: padding-box;
 
-    h1 {
-      font-size: 2.5rem;
-      color: #2a2a2a;
-      margin-bottom: 1.5rem;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      background: linear-gradient(45deg, #2563eb, #3b82f6);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+    &:hover {
+      background: rgba(99, 102, 241, 0.7);
     }
+  }
+}
 
-    .upload-box {
-      border: 2px solid #e0e7ff;
-      border-radius: 16px;
-      padding: 2.5rem 2rem;
-      background: #f8faff;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
+// Firefox support
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
+}
 
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
-      }
+// WelcomeScreen.scss
+.welcome-container {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+position: absolute;
+  bottom: 0vh;
+  left:0;
+  right:0;
+  top: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #ffffff 0%, #e5e5e5 100%);
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
 
-      p {
-        color: #2563eb;
-        font-size: 1.1rem;
-        font-weight: 500;
-        margin: 0;
-        position: relative;
-        z-index: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.75rem;
-
-        &::before {
-          content: '📁';
-          font-size: 1.5rem;
-          filter: drop-shadow(0 2px 4px rgba(37, 99, 235, 0.2));
-        }
-      }
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.1);
-        border-color: #3b82f6;
-        background: #f0f4ff;
-
-        p::before {
-          animation: bounce 0.6s infinite;
-        }
-      }
-
-      &:active {
-        transform: translateY(1px);
-      }
-    }
-
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translate(-50%, -40%);
-      }
-      to {
-        opacity: 1;
-        transform: translate(-50%, -50%);
-      }
-    }
-
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-5px); }
-    }
-
-    // Mobile optimization
-    @media (max-width: 480px) {
-      padding: 2rem 1.5rem;
+  .hero-section {
+    position: relative; // Needed for absolute positioning of animated background
+    padding: 8rem 2rem 4rem;
+    overflow: hidden; // Prevents animation from overflowing
+    clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%);
+    .animated-bg-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
       
-      h1 {
-        font-size: 2rem;
+      // Adjust animation to blend with blue background
+      canvas {
+        opacity: 0.4; // Makes animation subtle
       }
+    }
+  
+    .content-wrapper {
+      position: relative; // Brings content to front
+      z-index: 0;
+    }
+  
+    // Rest of your existing hero styles...
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(35deg, #fd9191 0%, #045ce8 100%);
+      z-index: 0;
+      mix-blend-mode: multiply; // Helps blend with animation
+    }
+ 
+  
 
-      .upload-box {
-        padding: 1.5rem;
-        
-        p {
-          font-size: 1rem;
-          flex-direction: column;
-          
-          &::before {
-            font-size: 1.75rem;
-          }
-        }
+  .hero-content {
+    max-width: 600px;
+    color: white;
+    animation: fadeInUp 0.8s ease-out;
+
+    .gradient-heading {
+      font-size: 4rem;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+      font-weight: 800;
+      
+      .highlight {
+        background: linear-gradient(45deg, #ffd700 20%, #fef08a 70%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
       }
+    }
+
+    .subtitle {
+      font-size: 1.25rem;
+      margin-bottom: 2.5rem;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
+  }
+
+  .cta-button {
+    background: linear-gradient(45deg, #fef08a 0%, #ffd700 100%);
+    color: #1e293b;
+    padding: 1rem 2.5rem;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+    } 
+  }
+  }
+
+  .features-section {
+    padding: 6rem 2rem;
+    background: white;
+    z-index: 100;
+  }
+
+  .features-grid {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    animation: staggerShow 0.6s ease-out forwards;
+    
+  }
+
+  .feature-card {
+    padding: 2rem;
+    border-radius: 20px;
+    background: white;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid #9ea3a9;
+    
+    &:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 24px rgba(99, 102, 241, 0.1);
+      
+      .icon-wrapper {
+        transform: rotate(-5deg) scale(1.05);
+      }
+    }
+
+    h3 {
+      font-size: 1.5rem;
+      margin: 1.5rem 0 1rem;
+      color: #1e293b;
+    }
+
+    p {
+      color: #64748b;
+      line-height: 1.6;
+    }
+  }
+
+  .icon-wrapper {
+    width: 60px;
+    height: 60px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    
+    &.bg-purple { background: rgba(99, 101, 241, 0.978); }
+    &.bg-blue { background: rgb(59, 131, 246); }
+    &.bg-green { background: rgb(34, 197, 94); }
+    &.bg-orange { background: rgb(249, 116, 22); }
+    
+    svg {
+      stroke-width: 1.5;
+    }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes staggerShow {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .hero-content {
+      .gradient-heading {
+        font-size: 3rem;
+      }
+    }
+
+    .features-grid {
+      grid-template-columns: 1fr;
     }
   }
 }
