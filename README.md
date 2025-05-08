@@ -1,12 +1,52 @@
-STUDYSHELF
+# StudyShelf 📚✨
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Organize Your Academic Life | Track Progress | Master Your Studies**
 
-Currently, two official plugins are available:
+StudyShelf is an all-in-one academic organization platform designed to help students manage their educational materials, track study progress, and optimize learning through structured planning and interactive tools.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+![StudyShelf Banner](https://via.placeholder.com/1200x400.png?text=StudyShelf+-+Organize+Your+Academic+Journey)
 
-## Expanding the ESLint configuration
+## 🌟 Features
 
-If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 📅 **Core Features**
+- **Semester & Class Management**  
+  - Create semesters and add classes with customizable details (professor, schedule, etc.).  
+  - Organize classes into sections: Homework, Notes, Textbooks, Study Sets, Practice Exams.
+
+- **Study Calendar**  
+  - Visualize deadlines, exams, and events with color-coded entries.  
+  - Sync due dates from homework/practice exams automatically.  
+  - Drag-and-drop rescheduling.
+
+### 🛠️ **Study Tools**
+- **Notes & Homework**  
+  - Create/edit rich-text documents (docx) or upload existing files.  
+  - Tag documents by topic, class, or priority.  
+
+- **Interactive Study Sets**  
+  - Build digital flashcards with text/images.  
+  - Auto-generate quizzes from flashcards.  
+  - Track progress with spaced repetition.  
+
+- **Practice Exams**  
+  - Create timed exams with multiple question types (MCQ, essay).  
+  - Analyze results with performance analytics.  
+
+- **Textbook Library**  
+  - Upload PDF/ePub textbooks with annotation support.  
+  - Search across all uploaded materials.  
+
+### 🎨 **User Experience**
+- **Smooth Animations**  
+  - Fluid transitions between pages and interactive elements.  
+  - Visual feedback for uploads, deletions, and completions.  
+
+- **Personalized Dashboard**  
+  - Overview of upcoming deadlines, recent files, and study progress.  
+  - Quick-access widgets for frequent actions.  
+
+- **Private & Secure**  
+  - End-to-end encryption for uploaded documents.  
+  - Google/email authentication with JWT.  
+
+

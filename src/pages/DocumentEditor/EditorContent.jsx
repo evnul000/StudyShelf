@@ -15,6 +15,24 @@ const DocEditorContent = ({ editor, initialContentLoaded }) => {
   }, [editor, initialContentLoaded]);
 
 
+// Handle Tab key for indentation
+useEffect(() => {
+  if (!editor || !initialContentLoaded) return;
+
+  const handleKeyDown = (event) => {
+    if (event.key === 'Tab' && !event.shiftKey) {
+      event.preventDefault();
+      editor.chain().focus().indent().run();
+    }
+  };
+
+  const editorDOM = editor.view.dom;
+  editorDOM.addEventListener('keydown', handleKeyDown);
+
+  return () => {
+    editorDOM.removeEventListener('keydown', handleKeyDown);
+  };
+}, [editor, initialContentLoaded]);
 
   if (!initialContentLoaded || !hasContent) {
     return (

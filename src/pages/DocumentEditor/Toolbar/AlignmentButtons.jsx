@@ -1,6 +1,22 @@
 import { AlignLeft, AlignCenter, AlignRight, AlignJustify, List, ListOrdered, Indent, Outdent } from 'lucide-react';
 
 const AlignmentButtons = ({ editor }) => {
+  // Custom indent handler
+  const handleIndent = () => {
+    const currentIndent = editor.getAttributes('paragraph').indent || 0;
+    editor.commands.updateAttributes('paragraph', {
+      indent: currentIndent + 1
+    });
+  };
+
+  // Custom outdent handler
+  const handleOutdent = () => {
+    const currentIndent = editor.getAttributes('paragraph').indent || 0;
+    editor.commands.updateAttributes('paragraph', {
+      indent: Math.max(currentIndent - 1, 0)
+    });
+  };
+
   return (
     <div className="alignment-buttons">
       <button 
@@ -53,9 +69,9 @@ const AlignmentButtons = ({ editor }) => {
         <ListOrdered size={18} />
       </button>
       
-      <button 
+     <button 
         className="alignment-button"
-        onClick={() => editor.chain().focus().indent().run()}
+        onClick={handleIndent}
         title="Indent"
       >
         <Indent size={18} />
@@ -63,11 +79,12 @@ const AlignmentButtons = ({ editor }) => {
       
       <button 
         className="alignment-button"
-        onClick={() => editor.chain().focus().outdent().run()}
+        onClick={handleOutdent}
         title="Outdent"
       >
         <Outdent size={18} />
       </button>
+   
     </div>
   );
 };
