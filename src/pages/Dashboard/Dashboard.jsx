@@ -117,16 +117,16 @@ useEffect(() => {
                 type,
                 className: cls.name,
                 semesterName: semesterData.name,
-                uploadedAt: item.addedAt,
+                uploadedAt: item.addedAt?.toDate ? item.addedAt.toDate() : new Date(item.addedAt), // Convert Timestamp
                 url: item.url
-              });
+              });              
             });
           });
         });
       });
       
       // Sort by upload date (newest first)
-      uploads.sort((a, b) => b.uploadedAt?.toDate() - a.uploadedAt?.toDate());
+      uploads.sort((a, b) => b.uploadedAt - a.uploadedAt);
       setRecentUploads(uploads.slice(0, 5));
     } catch (error) {
       console.error("Error fetching recent uploads: ", error);
@@ -462,7 +462,7 @@ useEffect(() => {
                       </p>
                     </div>
                     <div className="upload-date">
-                      {item.uploadedAt?.toDate().toLocaleDateString()}
+                    {item.uploadedAt?.toLocaleDateString()}
                     </div>
                     <button 
                       className="view-btn"

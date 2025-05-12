@@ -304,135 +304,7 @@ const openUploadPopup = (semesterId, classId, type) => {
     }
   };
 
-  const handleDragStart = (event) => {
-    const { active } = event;
-    setActiveDragItem(active.data.current);
-  };
 
-  const handleDragEnd = async (event) => {
-    const { active, over } = event;
-    
-    if (!active || !over || active.id === over.id) {
-      setActiveDragItem(null);
-      return;
-    }
-  
-    const activeData = active.data.current;
-    const overData = over.data.current;
-  
-    if (!activeData || !overData) {
-      setActiveDragItem(null);
-      return;
-    }
-  
-    try {
-      if (activeData.type === 'pdf' && overData.type === 'content-section') {
-        // If moving within the same class but different section
-        if (activeData.classId === overData.classId) {
-          await movePDFBetweenSections(activeData, overData);
-        } 
-        // If moving to a different class
-        else {
-          await movePDFToDifferentClass(activeData, overData);
-        }
-      }
-      
-      fetchSemesters(user.uid);
-    } catch (error) {
-      console.error("Error handling drag:", error);
-    } finally {
-      setActiveDragItem(null);
-    }
-  };
-
-  const movePDFBetweenSections = async (activeData, overData) => {
-    const { semesterId, classId, pdf, currentSection } = activeData;
-    const { sectionType: targetSection } = overData;
-  
-    try {
-      const semesterRef = doc(db, 'semesters', semesterId);
-      const semesterDoc = await getDoc(semesterRef);
-      
-      if (!semesterDoc.exists()) {
-        throw new Error(`Semester document not found: ${semesterId}`);
-      }
-
-      const semesterData = semesterDoc.data();
-
-      const updatedClasses = semesterData.classes.map(cls => {
-        if (cls.id === classId) {
-          // Remove from current section
-          const currentItems = cls[currentSection] || [];
-          const filteredCurrentItems = currentItems.filter(item => item.id !== pdf.id);
-          
-          // Add to target section
-          const targetItems = cls[targetSection] || [];
-          const updatedTargetItems = [...targetItems];
-          
-          // Only add if not already in target section
-          if (!targetItems.some(item => item.id === pdf.id)) {
-            updatedTargetItems.push(pdf);
-          }
-          
-          return {
-            ...cls,
-            [currentSection]: filteredCurrentItems,
-            [targetSection]: updatedTargetItems
-          };
-        }
-        return cls;
-      });
-
-      await updateDoc(semesterRef, { classes: updatedClasses });
-    } catch (error) {
-      console.error('Error in movePDFBetweenSections:', error);
-      throw error;
-    }
-  };
-
-  const movePDFToDifferentClass = async (activeData, overData) => {
-    const { semesterId, classId: sourceClassId, pdf, currentSection } = activeData;
-    const { classId: targetClassId, sectionType: targetSection = currentSection } = overData;
-  
-    try {
-      // Get the semester document
-      const semesterDoc = await getDoc(doc(db, 'semesters', semesterId));
-      
-      if (!semesterDoc.exists()) {
-        throw new Error("Semester not found");
-      }
-  
-      // Create a DEEP COPY of the data
-      const semesterData = JSON.parse(JSON.stringify(semesterDoc.data()));
-  
-      // Find the source and target classes
-      const sourceClassIndex = semesterData.classes.findIndex(c => c.id === sourceClassId);
-      const targetClassIndex = semesterData.classes.findIndex(c => c.id === targetClassId);
-  
-      if (sourceClassIndex === -1 || targetClassIndex === -1) {
-        throw new Error("Source or target class not found");
-      }
-  
-      // 1. Remove from source class's current section
-      semesterData.classes[sourceClassIndex][currentSection] = 
-        semesterData.classes[sourceClassIndex][currentSection]?.filter(item => item.id !== pdf.id) || [];
-  
-      // 2. Add to target class's target section
-      if (!semesterData.classes[targetClassIndex][targetSection]) {
-        semesterData.classes[targetClassIndex][targetSection] = [];
-      }
-      semesterData.classes[targetClassIndex][targetSection].push(pdf);
-  
-      // 3. Update the semester document
-      await updateDoc(doc(db, 'semesters', semesterId), {
-        classes: semesterData.classes
-      });
-  
-    } catch (error) {
-      console.error("Error moving PDF between classes:", error);
-      throw error;
-    }
-  };
 
   return (
    
@@ -961,14 +833,7 @@ const addSection = async (sectionType) => {
               const sections = { ...c.sections };
               if (!sections[sectionType]) {
                 sections[sectionType] = [];
-                // Initialize exams array if it doesn't exist
-                if (sectionType === 'exams' && !c.exams) {
-                  return {
-                    ...c,
-                    exams: [],
-                    sections
-                  };
-                }
+                
               }
               return { ...c, sections };
             }
@@ -994,14 +859,7 @@ const addSection = async (sectionType) => {
         const sections = { ...c.sections || {} };
         if (!sections[sectionType]) {
           sections[sectionType] = [];
-          // Initialize exams array if it doesn't exist
-          if (sectionType === 'exams' && !c.exams) {
-            return {
-              ...c,
-              exams: [],
-              sections
-            };
-          }
+         
         }
         return { ...c, sections };
       }

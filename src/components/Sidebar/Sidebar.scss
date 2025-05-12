@@ -200,6 +200,12 @@ $transition-speed: 0.3s;
       li {
         margin-bottom: 5px;
 
+        .nav-item.premium{
+           span{
+            position: relative;
+            left: -3.5vh;
+           }
+          }
         .nav-item {
           width: 100%;
           background: transparent;
@@ -227,10 +233,21 @@ $transition-speed: 0.3s;
           &:active {
             background: rgba(152, 0, 0, 0.5); // Only show background while actively pressing
           }
-
+          
+          .premium-icon {
+            width: 50px;
+            height: 50px;
+            display:block;
+            position: relative;
+            left: 1.5vh;
+            
+          }
           .icon {
             margin-right: 10px;
             font-size: 1.2rem;
+                    img {
+            vertical-align: middle;
+          }
           }
         }
       }

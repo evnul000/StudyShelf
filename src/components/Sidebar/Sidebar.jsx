@@ -14,6 +14,7 @@ import {
   FiMenu,
   FiX
 } from 'react-icons/fi';
+import premiumLogo from '../../assets/premium_logo.png';
 import userDefaultPic from '../../assets/user.png';
 import './Sidebar.scss';
 
@@ -163,6 +164,21 @@ const Sidebar = () => {
                 <span>StudyCards</span>
               </button>
             </li>
+                                <li>
+                      <button 
+                        className="nav-item premium"
+                        onClick={() => navigate('/premium')}
+                      >
+                        <span className="icon">
+                          <img 
+                            src={premiumLogo} 
+                            alt="Premium" 
+                            className="premium-icon" 
+                          />
+                        </span>
+                        <span>Premium</span>
+                      </button>
+                    </li>
             <li>
               <button 
                 className="nav-item"
