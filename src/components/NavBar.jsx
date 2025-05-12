@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import './Navbar.scss';
+import './NavBar.scss';
 import { signOut } from "firebase/auth";
 import { auth, db } from '../firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
